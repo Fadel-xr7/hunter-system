@@ -7,7 +7,12 @@
 <script>
   // يطبّق الواجهة واللغة المحفوظة قبل أول رسم عشان ما يصير وميض
   try { var t = localStorage.getItem('hunterTheme_v6'); if (t === 'ink' || t === 'anime') document.documentElement.dataset.theme = t; } catch (e) {}
-  try { if (localStorage.getItem('hunterLang_v6') === 'en') { document.documentElement.lang = 'en'; document.documentElement.dir = 'ltr'; document.title = 'Hunter System'; } } catch (e) {}
+  // اللغة: اختيارك المحفوظ، وأول مرة حسب لغة الجهاز (عربي إذا الجهاز عربي، وإلا English)
+  try {
+    var lg = localStorage.getItem('hunterLang_v6');
+    if (lg !== 'ar' && lg !== 'en') lg = /^ar\b/i.test((navigator.languages && navigator.languages[0]) || navigator.language || 'ar') ? 'ar' : 'en';
+    if (lg === 'en') { document.documentElement.lang = 'en'; document.documentElement.dir = 'ltr'; document.title = 'Hunter System'; }
+  } catch (e) {}
   // شاشة الدخول: تظهر إذا ما فيه جلسة محفوظة وما اخترت تكمل كضيف
   try {
     var hasSession = Object.keys(localStorage).some(function (k) { return /^sb-.+-auth-token$/.test(k); });
@@ -20,7 +25,7 @@
 <meta name="theme-color" content="#040915">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;700&family=Alexandria:wght@300;400;600&family=Amiri:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;700&family=Alexandria:wght@300;400;600&family=Amiri:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@400;500&family=Chakra+Petch:wght@500;700&family=Aref+Ruqaa:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -35,6 +40,7 @@
     <button class="tab" data-view="ach" data-en="Achievements">الإنجازات</button>
   </nav>
   <div class="tools">
+    <span class="sync-chip" id="syncChip" hidden></span>
     <button class="icon-btn" id="cloudBtn" aria-label="الحساب والمزامنة" data-en-aria="Account and sync" aria-haspopup="menu" aria-expanded="false" data-tip="الحساب" data-en-tip="Account">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.5 19H7a5 5 0 1 1 .9-9.9A6 6 0 0 1 19 10.5a4.3 4.3 0 0 1-1.5 8.5z"/></svg>
     </button>
@@ -73,9 +79,22 @@
 <div class="view" id="view-auth">
   <div class="auth-wrap">
     <section class="auth-hero" aria-hidden="true">
-      <p class="auth-big" data-en-html="A new line<br>every day.">كل يوم<br>سطر جديد.</p>
-      <p class="auth-lead" data-en="Write your quests, strike them off one by one, and watch the tally grow. Your account keeps all of it on your phone and your computer.">سجّل مهامك، واشطبها وحدة وحدة، وخلّ العدّاد يكبر. حسابك يحفظ كل هذا على جوالك وكمبيوترك.</p>
-      <div class="auth-tally" id="authTally"></div>
+      <div class="ah-anime">
+        <p class="ah-kicker" data-en="[ THE SYSTEM ]">[ النظام ]</p>
+        <p class="ah-title" data-en="Enter the gate">ادخل البوابة</p>
+        <p class="ah-lead" data-en="Every day brings quests, and every quest brings XP. Your streak and rank are saved to your account and sync between your phone and your computer.">كل يوم مهام، وكل مهمة خبرة. سلسلتك ورتبتك محفوظة في حسابك وتتزامن بين جوالك وجهازك.</p>
+        <ul class="ah-list">
+          <li class="c1" data-en="Daily quests and ranked gates">مهام يومية وبوابات بمستويات ورتب</li>
+          <li class="c2" data-en="A focus gate that pays XP for every minute">بوابة تركيز تعطيك خبرة على كل دقيقة</li>
+          <li class="c3" data-en="A day streak with 3 grace days">سلسلة أيام مع 3 أيام سماح</li>
+        </ul>
+      </div>
+      <div class="ah-ink">
+        <svg class="ah-moon" viewBox="0 0 300 300" aria-hidden="true"><circle cx="150" cy="150" r="140" class="ahm-orbit"/><circle cx="150" cy="150" r="112" class="ahm-disc"/><g class="ahm-craters"><circle cx="114" cy="112" r="17"/><circle cx="180" cy="168" r="23"/><circle cx="136" cy="196" r="10"/><circle cx="190" cy="104" r="8"/><circle cx="96" cy="166" r="12"/></g><circle cx="150" cy="10" r="5" class="ahm-star"/></svg>
+        <p class="auth-big" data-en="The Moon Ledger">دفتر القمر</p>
+        <p class="auth-lead" data-en-html="A new line in your ledger every day.<br>Finish your quests, your moon fills, and your streak grows.">كل يوم سطر جديد في دفترك.<br>أكمل مهامك، يكتمل قمرك، وتكبر سلسلتك.</p>
+      </div>
+      <div class="auth-tally" id="authTally" hidden></div>
     </section>
 
     <section class="panel auth-card" id="authCard" aria-labelledby="authTitle">
@@ -106,7 +125,7 @@
           <label id="emailRow" data-en="Email">الإيميل
             <input id="aEmail" type="email" dir="ltr" autocomplete="email" placeholder="name@example.com" required>
           </label>
-          <label id="pwRow"><span id="pwLabel">كلمة المرور<span></span></span>
+          <label id="pwRow"><span id="pwLabel" data-en="Password">كلمة المرور<span></span></span>
             <span class="pw-wrap">
               <input id="aPw" type="password" dir="ltr" autocomplete="current-password" minlength="8">
               <button type="button" class="pw-eye" id="pwToggle" aria-label="إظهار كلمة المرور" data-en-aria="Show password" aria-pressed="false">
@@ -142,7 +161,7 @@
 <div class="view" id="view-today">
   <section id="hero" aria-label="حالة الصياد" data-en-aria="Hunter status"></section>
 
-  <div class="stat-cards" id="statCards" aria-label="لمحة اليوم" data-en-aria="Today at a glance"></div>
+  <div class="stat-cards panel" id="statCards" aria-label="لمحة اليوم" data-en-aria="Today at a glance"></div>
 
   <div class="layout">
     <main class="col-main">
@@ -178,9 +197,14 @@
 
       <section class="panel" id="heatPanel" aria-labelledby="heatTitle">
         <div class="heat-main">
-          <h2 id="heatTitle" data-en="Last 12 weeks">آخر 12 أسبوعاً</h2>
-          <div class="heat" id="heat" role="img"></div>
-          <p class="note" id="heatNote" data-en="Starts from your first day, top left. Each row is a week starting on Friday, and the stronger the cell, the more you completed.">يبدأ من أول يوم لك، فوق يمين. كل صف أسبوع يبدأ بالجمعة، وكلما كانت الخانة أقوى أنجزت أكثر.</p>
+          <div class="heat-head">
+            <h2 id="heatTitle" data-en="Last 12 weeks">آخر 12 أسبوعاً</h2>
+            <div class="heat-legend lg-anime" aria-hidden="true"><span class="lg-c3" data-en="Complete">مكتمل</span><span class="lg-c2" data-en="Partial">جزئي</span><span class="lg-rest" data-en="Rest">راحة</span></div>
+            <p class="heat-legend lg-ink" data-en="Each star is a completed day, and a thread links consecutive days.">كل نجمة يوم مكتمل، والخيط يربط الأيام المتتالية.</p>
+          </div>
+          <div class="heat" id="heat" role="group"></div>
+          <p class="heat-day" id="heatDay" aria-live="polite"></p>
+          <p class="note" id="heatNote" data-en="Starts from your first day, top left. Each row is a week starting on Friday, and the stronger the cell, the more you completed. Tap a day for its details.">يبدأ من أول يوم لك، فوق يمين. كل صف أسبوع يبدأ بالجمعة، وكلما كانت الخانة أقوى أنجزت أكثر. اضغط أي يوم وتشوف تفاصيله.</p>
         </div>
         <dl class="heat-stats" id="heatStats"></dl>
       </section>
@@ -193,6 +217,7 @@
           <svg class="ring" viewBox="0 0 240 240" aria-hidden="true">
             <circle class="ring-bg" cx="120" cy="120" r="108"/>
             <circle class="ring-fg" id="timerRing" cx="120" cy="120" r="108" pathLength="1000" transform="rotate(-90 120 120)"/>
+            <circle class="orbit" id="timerOrbit" cx="120" cy="12" r="6"/>
           </svg>
           <div class="ring-center">
             <p class="phase" id="timerPhase" aria-live="polite"></p>
@@ -222,6 +247,7 @@
           <button class="main-btn" id="timerStart" data-en="Enter the gate">ادخل البوابة</button>
           <button class="ghost-btn" id="timerReset" data-en="Reset">إعادة</button>
         </div>
+        <button type="button" class="link-btn imm-btn" id="immBtn" aria-haspopup="dialog" data-en="Immersive mode: hide everything but the timer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>وضع الغمر: يخفي كل شي إلا المؤقت</button>
       </section>
 
       <section class="panel" id="achMini" aria-labelledby="achMiniTitle">
@@ -243,13 +269,33 @@
     <h1 class="page-title" data-en="Analytics">التحليلات</h1>
     <div class="numbers" id="numbers"></div>
     <div class="charts">
-      <section class="panel" aria-labelledby="xpChartTitle">
-        <h2 id="xpChartTitle" data-en="XP over the last 30 days">الخبرة في آخر 30 يوماً</h2>
+      <section class="panel chart-wide" aria-labelledby="xpChartTitle">
+        <div class="chart-head">
+          <h2 id="xpChartTitle" data-en="XP curve">منحنى الخبرة</h2>
+          <p class="chart-sum" id="xpSum"></p>
+          <div class="range" role="group" aria-label="الفترة" data-en-aria="Period">
+            <button type="button" data-range="7" aria-pressed="false" data-en="7 days">7 أيام</button>
+            <button type="button" data-range="30" aria-pressed="true" data-en="30 days">30 يوم</button>
+          </div>
+        </div>
         <div id="xpChart" class="chart"></div>
       </section>
       <section class="panel" aria-labelledby="radarTitle">
-        <h2 id="radarTitle" data-en="Your abilities">قدراتك</h2>
+        <div class="chart-head">
+          <h2 id="radarTitle" data-en="Ability radar">رادار القدرات</h2>
+          <div class="radar-legend" aria-hidden="true"><span class="rl-now" data-en="This week">هذا الأسبوع</span><span class="rl-prev" data-en="Last week">اللي فات</span></div>
+        </div>
         <div id="radar" class="chart"></div>
+        <p class="chart-note" id="radarNote"></p>
+      </section>
+      <section class="panel" id="weekPanel" aria-labelledby="weekTitle">
+        <div class="chart-head">
+          <h2 id="weekTitle" data-en="Last week">الأسبوع اللي فات</h2>
+          <p class="chart-sum" id="weekRange"></p>
+        </div>
+        <dl class="week-stats" id="weekStats"></dl>
+        <p class="week-cap" data-en="Focus minutes per day">دقائق التركيز في كل يوم</p>
+        <div class="week-bars" id="weekBars" role="img"></div>
       </section>
     </div>
   </div>
@@ -299,11 +345,39 @@
         </select>
       </label>
     </div>
+    <label id="eSubsBox" data-en="Gate steps (one per line)">خطوات البوابة (سطر لكل خطوة)
+      <textarea id="eSubs" rows="4" maxlength="2100" placeholder="قراءة المحاضرة&#10;حل الأسئلة&#10;رفع الملف" data-en-ph="Read the lecture&#10;Solve the questions&#10;Upload the file"></textarea>
+    </label>
     <div class="row-btns">
       <button class="main-btn" value="save" data-en="Save">حفظ</button>
       <button class="ghost-btn" value="cancel" formnovalidate data-en="Cancel">إلغاء</button>
     </div>
   </form>
+</dialog>
+
+<dialog id="immersive" class="immersive" aria-labelledby="imTask">
+  <div class="im-wrap">
+    <p class="im-kicker" data-en="Inside the gate">داخل البوابة</p>
+    <h2 id="imTask"></h2>
+    <div class="ring-wrap im-ring">
+      <svg class="ring" viewBox="0 0 240 240" aria-hidden="true">
+        <circle class="ring-bg" cx="120" cy="120" r="108"/>
+        <circle class="ring-fg" id="imRing" cx="120" cy="120" r="108" pathLength="1000" transform="rotate(-90 120 120)"/>
+        <circle class="orbit" id="imOrbit" cx="120" cy="12" r="7"/>
+      </svg>
+      <div class="ring-center">
+        <p class="phase" id="imPhase"></p>
+        <div class="timer" id="imTime" role="timer">25:00</div>
+        <span class="ring-sub" id="imSub"></span>
+      </div>
+    </div>
+    <div class="steps" id="imSteps" hidden></div>
+    <div class="row-btns">
+      <button type="button" class="main-btn" id="imToggle"></button>
+      <button type="button" class="ghost-btn" id="imExit" data-en="Exit (Esc)">اخرج (Esc)</button>
+    </div>
+    <p class="note" data-en-html="Every focus minute = 3 XP.">كل دقيقة تركيز = <bdi dir="ltr">3 XP</bdi></p>
+  </div>
 </dialog>
 
 <dialog id="confirmDialog" class="panel dlg">
@@ -347,10 +421,23 @@
       <p class="brief-date" id="briefDate"></p>
     </div>
     <div id="briefBody"></div>
+    <p class="brief-sign" aria-hidden="true" data-en="— The System">— النظام</p>
     <div class="row-btns">
       <button class="main-btn" value="close" id="briefCta"></button>
       <button type="button" class="ghost-btn speak-btn" id="briefSpeak" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg><span id="briefSpeakLbl" data-en="Listen to the report">اسمع التقرير</span></button>
     </div>
+  </form>
+</dialog>
+
+<dialog id="lvDialog" class="lv-dlg" aria-labelledby="lvTitle">
+  <div class="lv-fx" aria-hidden="true"><span class="lv-rays"></span><span class="lv-ring"></span><span class="lv-ring r2"></span><span class="lv-ring r3"></span></div>
+  <form method="dialog" class="lv-box">
+    <p class="lv-kicker" data-en="[ SYSTEM NOTICE ]">[ إشعار النظام ]</p>
+    <h2 id="lvTitle" data-en="Level up!">ارتقيت مستوى!</h2>
+    <div class="lv-nums" dir="ltr"><span class="lv-from" id="lvFrom"></span><svg class="lv-arrow" viewBox="0 0 40 24" aria-hidden="true"><path d="M2 12h34"/><path d="m28 4 8 8-8 8"/></svg><span class="lv-to" id="lvTo"></span></div>
+    <span class="lv-line" aria-hidden="true"></span>
+    <p class="lv-note" id="lvNote"></p>
+    <button class="main-btn" value="ok" data-en="Continue">متابعة</button>
   </form>
 </dialog>
 

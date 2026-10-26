@@ -7,7 +7,9 @@
 
 ترسل له مهمة بسطر واحد، مثل:
     مهمة: مراجعة الكود الساعة 10 مساءً !A #ذكاء
+    task: review the code at 10pm !A #intellect
 فيرد عليك برابط. تضغطه فيفتح الموقع ويسألك: تضيفها؟
+يرد بالعربي إذا رسالتك عربي، وبالإنجليزي إذا رسالتك إنجليزي.
 
 التشغيل (من داخل مجلد bot):
     uv run bot.py
@@ -16,6 +18,7 @@
 """
 import logging
 import os
+import re
 from pathlib import Path
 from urllib.parse import quote, urlparse
 
@@ -57,6 +60,28 @@ HELP = (
     "أرد عليك برابط، اضغطه فيفتح الموقع ويسألك قبل الإضافة."
 )
 
+HELP_EN = (
+    "⚔️ <b>The Hunter System is ready</b>\n\n"
+    "Send your quest in one line, for example:\n"
+    "<code>task: review the code at 10pm !A #intellect</code>\n\n"
+    "• <code>!E</code> to <code>!S</code> = gate rank\n"
+    "• <code>#strength #vitality #agility #intellect #discipline</code> = ability\n"
+    "• <code>tomorrow</code> or <code>day 12</code> = the day\n"
+    "• <code>daily</code> = a quest that repeats every day\n\n"
+    "I reply with a link. Open it and the site asks you before adding."
+)
+
+ARABIC = re.compile(r"[\u0600-\u06FF]")
+
+
+def is_english(update: Update, text: str = "") -> bool:
+    """الرد بالإنجليزي إذا الرسالة ما فيها حروف عربية، أو (لـ /start) إذا لغة تيليجرام مو عربي."""
+    if text:
+        return not ARABIC.search(text)
+    user = update.effective_user
+    code = (user.language_code or "") if user else ""
+    return bool(code) and not code.lower().startswith("ar")
+
 
 def is_allowed(update: Update) -> bool:
     if not ALLOWED_ID:
@@ -77,12 +102,19 @@ def button_ok(url: str) -> bool:
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user = update.effective_user
-    msg = HELP
+    en = is_english(update)
+    msg = HELP_EN if en else HELP
     if not ALLOWED_ID and user:
-        msg += (
-            f"\n\n🔒 رقمك في تيليجرام: <code>{user.id}</code>\n"
-            "حطه في ملف .env عند ALLOWED_USER_ID عشان البوت يرد عليك أنت بس، وأعد تشغيله."
-        )
+        if en:
+            msg += (
+                f"\n\n🔒 Your Telegram ID: <code>{user.id}</code>\n"
+                "Put it in the .env file at ALLOWED_USER_ID so the bot only answers you, then restart it."
+            )
+        else:
+            msg += (
+                f"\n\n🔒 رقمك في تيليجرام: <code>{user.id}</code>\n"
+                "حطه في ملف .env عند ALLOWED_USER_ID عشان البوت يرد عليك أنت بس، وأعد تشغيله."
+            )
     await update.message.reply_text(msg, parse_mode=ParseMode.HTML)
 
 
@@ -93,15 +125,20 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     text = (update.message.text or "").strip()
     if not text:
         return
+    en = is_english(update, text)
     if len(text) > 300:
-        await update.message.reply_text("⚠️ الرسالة طويلة، خلها أقصر من 300 حرف.")
+        await update.message.reply_text("⚠️ That message is too long, keep it under 300 characters." if en
+                                        else "⚠️ الرسالة طويلة، خلها أقصر من 300 حرف.")
         return
 
     link = make_link(text)
-    reply = f"📨 وصلت المهمة:\n<b>{escape(text)}</b>\n\nاضغط الرابط لإضافتها للنظام:\n{escape(link)}"
+    if en:
+        reply = f"📨 Quest received:\n<b>{escape(text)}</b>\n\nOpen the link to add it to the System:\n{escape(link)}"
+    else:
+        reply = f"📨 وصلت المهمة:\n<b>{escape(text)}</b>\n\nاضغط الرابط لإضافتها للنظام:\n{escape(link)}"
     markup = None
     if button_ok(link):
-        markup = InlineKeyboardMarkup([[InlineKeyboardButton("⚔️ أضفها للنظام", url=link)]])
+        markup = InlineKeyboardMarkup([[InlineKeyboardButton("⚔️ Add it to the System" if en else "⚔️ أضفها للنظام", url=link)]])
     await update.message.reply_text(reply, parse_mode=ParseMode.HTML, reply_markup=markup,
                                     disable_web_page_preview=True)
 

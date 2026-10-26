@@ -1,6 +1,6 @@
 // يخلي النظام يشتغل بدون إنترنت. الشبكة أولاً، فأي تعديل يظهر مباشرة،
 // والنسخة المخزنة تُستخدم بس لما ينقطع النت.
-const CACHE = 'hunter-v8';
+const CACHE = 'hunter-v9';
 const ASSETS = ['./', './index.html', './style.css', './i18n.js', './app.js', './config.js', './cloud.js', './vendor/supabase.js', './manifest.webmanifest', './icon-192.png', './icon-512.png', './hunter-avatar.webp', './dungeon-gate.webp'];
 
 self.addEventListener('install', (e) => {

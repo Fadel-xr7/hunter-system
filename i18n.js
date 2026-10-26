@@ -9,11 +9,19 @@
        data-en-ph    placeholder      data-en-aria  aria-label
        data-en-tip   data-tip         data-en-title title
        data-en-val   value
-   - زر اللغة يحفظ الاختيار في المتصفح ويعيد تحميل الصفحة.
+   - أول زيارة: اللغة حسب لغة الجهاز. وزر اللغة يحفظ اختيارك في المتصفح ويعيد تحميل الصفحة.
    ===================================================================== */
 
 const LANG_KEY = 'hunterLang_v6';
-const LANG = (() => { try { return localStorage.getItem(LANG_KEY) === 'en' ? 'en' : 'ar'; } catch (e) { return 'ar'; } })();
+// اختيارك المحفوظ أول، وإذا ما اخترت للحين: حسب لغة الجهاز (عربي إذا الجهاز عربي، وإلا English)
+const LANG = (() => {
+  try {
+    const saved = localStorage.getItem(LANG_KEY);
+    if (saved === 'ar' || saved === 'en') return saved;
+    const dev = (navigator.languages && navigator.languages[0]) || navigator.language || 'ar';
+    return /^ar\b/i.test(dev) ? 'ar' : 'en';
+  } catch (e) { return 'ar'; }
+})();
 const EN = LANG === 'en';
 const L = (ar, en) => (EN ? en : ar);
 

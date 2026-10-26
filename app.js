@@ -7,6 +7,8 @@
    7. الإضافة السريعة    8. مؤقت التركيز         9. الإنجازات
    10. النسخ الاحتياطي   11. الصوت والتأثيرات    12. الرسم (render)
    13. التشغيل          14. الإضافات: المهمة الأهم، الألقاب، البطاقات، تقرير النظام
+   15. إضافات 26 أكتوبر: التراجع، خطوات البوابة، تفاصيل اليوم، وضع الغمر
+   16. الشكل الجديد: النظام الحي (أنمي) ودفتر القمر (حبر الليل)
    ===================================================================== */
 
 /* ============ 1. أدوات عامة ============ */
@@ -144,7 +146,8 @@ function normalize(raw) {
     s.gates = raw.gates.filter((q) => q && q.id && q.title && isIso(q.date)).slice(0, 2000).map((q) => ({
       id: String(q.id).slice(0, 40), title: String(q.title).slice(0, 120), date: q.date,
       rank: RANK_XP[q.rank] ? q.rank : 'E', xp: clampNum(q.xp, 1, 5000, RANK_XP[q.rank] || 25),
-      time: isTime(q.time) ? q.time : '17:00', stat: STATS.includes(q.stat) ? q.stat : 'SENSE', done: Boolean(q.done)
+      time: isTime(q.time) ? q.time : '17:00', stat: STATS.includes(q.stat) ? q.stat : 'SENSE', done: Boolean(q.done),
+      subs: normSubs(q.subs)
     }));
   }
   if (raw.log && typeof raw.log === 'object') {
@@ -189,6 +192,14 @@ function normalize(raw) {
   s.lastBackup = clampNum(raw.lastBackup, 0, 1e14, 0);
   s.startDate = isIso(raw.startDate) ? raw.startDate : (s.completedDates[0] || todayIso());
   return s;
+}
+
+// خطوات البوابة: [{ id, title, done }] بحد أقصى 20
+function normSubs(a) {
+  if (!Array.isArray(a)) return [];
+  return a.filter((x) => x && typeof x.title === 'string' && x.title.trim()).slice(0, 20).map((x) => ({
+    id: String(x.id || uid('s')).slice(0, 40), title: String(x.title).trim().slice(0, 100), done: Boolean(x.done)
+  }));
 }
 
 function normDays(a) {
@@ -296,7 +307,7 @@ function grant(key, xp, stat) {
   state.xpByDate[d] = (state.xpByDate[d] || 0) + xp;
   if (stat) state.stats[stat] = (state.stats[stat] || 0) + 1;
   const after = levelInfo(state.totalXp).level;
-  if (after > before) setTimeout(() => celebrateLevel(after), 400);
+  if (after > before) setTimeout(() => celebrateLevel(after, before), 400);
   return true;
 }
 
@@ -395,14 +406,14 @@ function toggleTask(kind, id) {
     } else {
       arr.push(id);
       grant(key, q.xp, q.stat);
-      toast(L('اكتملت المهمة: ', 'Quest complete: ') + q.title, '+' + q.xp + ' XP'); sound('done');
+      toast(L('اكتملت المهمة: ', 'Quest complete: ') + q.title, '+' + q.xp + ' XP', '', undoToggle(kind, id)); sound('done');
     }
     syncDay(t);
   } else {
     const g = state.gates.find((x) => x.id === id);
     if (!g) return;
     g.done = !g.done;
-    if (g.done) { grant('gate:' + id, g.xp, g.stat); toast(L('تم تطهير بوابة ' + g.rank, 'Gate ' + g.rank + ' cleared') + ': ' + g.title, '+' + g.xp + ' XP'); sound('done'); }
+    if (g.done) { grant('gate:' + id, g.xp, g.stat); toast(L('تم تطهير بوابة ' + g.rank, 'Gate ' + g.rank + ' cleared') + ': ' + g.title, '+' + g.xp + ' XP', '', undoToggle(kind, id)); sound('done'); }
     else { revoke('gate:' + id); sound('undo'); }
   }
   syncMit();
@@ -446,7 +457,8 @@ function openEdit(kind, id) {
     const on = kind === 'fixed' && (!q.days.length || q.days.includes(i));
     box.append(el('label', { class: 'day' }, el('input', { type: 'checkbox', value: i, checked: on }), el('span', { text: name })));
   });
-  if (kind === 'gate') { $('eDate').value = q.date; $('eRank').value = q.rank; }
+  if (kind === 'gate') { $('eDate').value = q.date; $('eRank').value = q.rank; $('eSubs').value = (q.subs || []).map((x) => x.title).join('\n'); }
+  $('eSubsBox').hidden = kind !== 'gate';
   const dlg = $('editDialog');
   dlg.onclose = () => {
     if (dlg.returnValue !== 'save') return;
@@ -461,6 +473,12 @@ function openEdit(kind, id) {
       if (isIso($('eDate').value)) q.date = $('eDate').value;
       const r = $('eRank').value;
       if (RANK_XP[r] && r !== q.rank) { q.rank = r; if (!q.done) q.xp = RANK_XP[r]; }
+      // الخطوات: سطر لكل خطوة، والخطوة اللي ما تغيّر اسمها تحتفظ بحالتها
+      const old = q.subs || [];
+      q.subs = normSubs($('eSubs').value.split('\n').map((x) => x.trim()).filter(Boolean).map((title) => {
+        const o = old.find((x) => x.title === title);
+        return o ? o : { id: uid('s'), title, done: false };
+      }));
     }
     commit();
   };
@@ -555,10 +573,11 @@ function readQuick() {
 }
 
 function addParsed(p) {
-  if (p.kind === 'fixed') state.fixed.push({ id: uid('f_'), title: p.title, stat: p.stat, xp: 30, time: p.time, days: [] });
-  else state.gates.push({ id: uid('g_'), title: p.title, date: p.date, rank: p.rank, xp: p.xp, time: p.time, stat: p.stat, done: false });
+  const id = uid(p.kind === 'fixed' ? 'f_' : 'g_');
+  if (p.kind === 'fixed') state.fixed.push({ id, title: p.title, stat: p.stat, xp: 30, time: p.time, days: [] });
+  else state.gates.push({ id, title: p.title, date: p.date, rank: p.rank, xp: p.xp, time: p.time, stat: p.stat, done: false, subs: [] });
   if (p.kind === 'fixed') syncDay(todayIso());
-  toast(p.kind === 'fixed' ? L('أضيفت مهمة يومية', 'Daily quest added') : L('فُتحت بوابة جديدة', 'A new gate opened'), p.title);
+  toast(p.kind === 'fixed' ? L('أضيفت مهمة يومية', 'Daily quest added') : L('فُتحت بوابة جديدة', 'A new gate opened'), p.title, '', undoAdd(p.kind, id));
   sound('done');
   commit();
 }
@@ -746,22 +765,37 @@ function sound(type) {
   } catch (e) { /* بدون صوت */ }
 }
 
-function toast(title, sub, tone) {
+// action اختياري: { label, run } يطلع زر (مثل «تراجع») ويطوّل مدة الإشعار
+function toast(title, sub, tone, action) {
   const box = $('toasts');
-  const t = el('div', { class: 'toast ' + (tone || '') },
+  const t = el('div', { class: 'toast ' + (tone || '') + (action ? ' has-action' : '') },
     el('span', { class: 'toast-mark', 'aria-hidden': 'true', text: '!' }),
     el('span', { class: 'toast-title', text: title }),
     sub ? el('span', { class: 'toast-sub', text: sub }) : null);
+  if (action) {
+    t.append(el('button', { type: 'button', class: 'toast-btn', onclick: () => { t.remove(); action.run(); }, text: action.label }));
+  }
   box.append(t);
   while (box.children.length > 3) box.firstChild.remove();
-  setTimeout(() => t.classList.add('out'), 2600);
-  setTimeout(() => t.remove(), 3100);
+  const life = action ? 5200 : 2600;
+  setTimeout(() => t.classList.add('out'), life);
+  setTimeout(() => t.remove(), life + 500);
 }
 
-function celebrateLevel(lv) {
-  toast(L('ارتقيت إلى المستوى ' + lv, 'Level up! You reached level ' + lv), L('استمر يا صياد', 'Keep going, Hunter'), 'gold');
+function celebrateLevel(lv, from) {
   sound('level');
   burst();
+  const dlg = $('lvDialog');
+  if (!dlg || typeof dlg.showModal !== 'function') { toast(L('ارتقيت إلى المستوى ' + lv, 'Level up! You reached level ' + lv), L('استمر يا صياد', 'Keep going, Hunter'), 'gold'); return; }
+  const prev = dlg.open ? Number($('lvFrom').textContent) || from : (from || lv - 1);
+  $('lvFrom').textContent = String(prev);
+  $('lvTo').textContent = String(lv);
+  const nr = RANKS.find((x) => x.lv > lv);
+  $('lvNote').textContent = L('المستوى ' + lv + ' يحتاج ' + lv * 100 + ' XP.', 'Level ' + lv + ' needs ' + lv * 100 + ' XP.')
+    + (nr ? L(' تبقّى ' + Math.max(0, nr.lv - lv) + ' مستوى على اختبار الرتبة ' + nr.l + '.', ' ' + Math.max(0, nr.lv - lv) + ' more levels to the rank ' + nr.l + ' trial.') : '');
+  // نعيد تشغيل الحركات
+  dlg.classList.remove('play'); void dlg.offsetWidth; dlg.classList.add('play');
+  if (!dlg.open) dlg.showModal();
 }
 
 function burst() {
@@ -842,37 +876,113 @@ function nameButton(cls) {
 function renderHero(si) {
   const hero = $('hero');
   const lv = levelInfo(state.totalXp);
-  const { cur, next } = rankFor(lv.level, Math.max(si.streak, state.bestStreak));
-  const nextText = next ? L('الرتبة ' + next.l + ' عند المستوى ' + next.lv + ' وسلسلة ' + daysAr(next.streak), 'Rank ' + next.l + ' at level ' + next.lv + ' with a ' + next.streak + '-day streak') : L('أعلى رتبة في النظام', 'Highest rank in the System');
+  const reach = Math.max(si.streak, state.bestStreak);
+  const { cur, next } = rankFor(lv.level, reach);
   const anime = theme() === 'anime';
   const ttl = activeTitle();
+  const need = lv.need - lv.xp;
+
+  // الخبرة: أنمي = 20 مقطع، حبر الليل = خط رفيع بنقطة
+  const filled = Math.floor(lv.xp / lv.need * 20);
+  const xpBar = anime
+    ? el('div', { class: 'xpseg', role: 'img', 'aria-label': L('الخبرة ', 'XP ') + lv.xp + L(' من ', ' of ') + lv.need },
+      ...Array.from({ length: 20 }, (_, i) => el('i', { class: i < filled ? 'on' : '' })))
+    : el('div', { class: 'xpbar', role: 'img', 'aria-label': L('الخبرة ', 'XP ') + lv.xp + L(' من ', ' of ') + lv.need }, el('span', { style: 'width:' + Math.round(lv.xp / lv.need * 1000) / 10 + '%' }));
+
+  const lvlBlock = el('div', { class: 'lvl-block' },
+    el('div', { class: 'lvl-row' },
+      el('span', { class: 'lvl-num' }, String(lv.level)),
+      el('div', { class: 'who' },
+        el('span', { class: 'muted', text: L('المستوى', 'Level') }),
+        nameButton('hname'),
+        el('div', { class: 'chips' },
+          el('span', { class: 'rank-chip', text: L('صياد رتبة ' + cur.l, cur.l + '-Rank Hunter') }),
+          ttl ? el('span', { class: 'title-chip', title: L('لقبك الحالي', 'Your current title') }, crownIcon(), ttl.name) : null))),
+    xpBar,
+    el('div', { class: 'xp-meta' },
+      el('span', { text: L('تبقّى ' + need + ' XP على المستوى ' + (lv.level + 1), need + ' XP to level ' + (lv.level + 1)) }),
+      el('span', { dir: 'ltr', text: lv.xp + ' / ' + lv.need + ' XP' })),
+    next ? rankTrial(next, lv.level, reach) : el('p', { class: 'rank-max', text: L('وصلت أعلى رتبة في النظام.', 'You reached the highest rank in the System.') }));
+
   const graceDots = el('span', { class: 'grace', 'aria-label': L('أيام السماح المتبقية: ' + si.graceLeft + ' من ', 'Grace days left: ' + si.graceLeft + ' of ') + GRACE_DAYS },
     ...Array.from({ length: GRACE_DAYS }, (_, i) => el('i', { class: i < si.graceLeft ? 'left' : '' })));
-  // نفس الترتيب في الواجهتين، والفرق في الشكل من style.css
+  const streakLbl = si.streak === 1 ? L('يوم متتالي', 'day in a row') : L('يوماً متتالياً', 'days in a row');
+
   hero.className = anime ? 'hero-anime' : 'hero-ink';
-  hero.replaceChildren(...[
-    anime ? el('div', { class: 'avatar', 'aria-hidden': 'true' }, el('img', { src: 'hunter-avatar.webp', alt: '' })) : null,
-    el('div', { class: 'hero-body' },
-      el('div', { class: 'lvl-block' },
-        el('div', { class: 'lvl-row' },
-          el('span', { class: 'lvl-num' }, String(lv.level)),
-          el('div', { class: 'who' },
-            el('span', { class: 'muted', text: L('المستوى', 'Level') }),
-            nameButton('hname'),
-            el('div', { class: 'chips' },
-              el('span', { class: 'rank-chip', text: L('صياد رتبة ' + cur.l, cur.l + '-Rank Hunter') }),
-              ttl ? el('span', { class: 'title-chip', title: L('لقبك الحالي', 'Your current title') }, crownIcon(), ttl.name) : null))),
-        el('div', { class: 'xpbar' }, el('span', { style: 'width:' + Math.round(lv.xp / lv.need * 100) + '%' })),
-        el('div', { class: 'xp-meta' }, el('span', { dir: 'ltr', text: lv.xp + ' / ' + lv.need + ' XP' }), el('span', { text: nextText }))),
-      el('div', { class: 'streak-block' },
-        el('div', { class: 'streak-row' },
-          anime ? el('span', { class: 'flame', 'aria-hidden': 'true' }) : null,
-          el('span', { class: 'streak-num', text: String(si.streak) })),
-        el('span', { class: 'streak-lbl', text: si.streak === 1 ? L('يوم متتالي', 'day in a row') : L('يوماً متتالياً', 'days in a row') }),
-        el('div', { class: 'grace-row' }, el('span', { text: L('أيام السماح', 'Grace days') }), graceDots,
-          anime ? null : el('span', { text: si.graceLeft === GRACE_DAYS ? L('كاملة', 'full') : L('بقي ' + si.graceLeft, si.graceLeft + ' left') })))),
-    el('p', { class: 'subtitle', id: 'subtitle' })].filter(Boolean));
+  if (anime) {
+    // نافذة [الحالة]: السلسلة وأيام السماح والقدرات
+    const maxStat = Math.max(30, ...STATS.map((k) => state.stats[k] || 0));
+    const status = el('section', { class: 'status-win panel', 'aria-label': L('الحالة', 'Status') },
+      el('p', { class: 'win-tab', text: L('[ الحالة ]', '[ STATUS ]') }),
+      el('div', { class: 'st-streak' },
+        el('span', { class: 'flame', 'aria-hidden': 'true' }),
+        el('span', { class: 'streak-num', text: String(si.streak) }),
+        el('div', { class: 'st-side' },
+          el('span', { class: 'streak-lbl', text: streakLbl }),
+          el('div', { class: 'grace-row' }, el('span', { text: L('أيام السماح', 'Grace days') }), graceDots))),
+      el('div', { class: 'st-abil' }, STATS.map((k) => el('div', { class: 'ab s-' + k },
+        el('div', { class: 'ab-top' }, el('span', { class: 'ab-name', text: STAT_AR[k] }), el('span', { class: 'ab-val', text: String(state.stats[k] || 0) })),
+        el('div', { class: 'ab-bar' }, el('span', { style: 'width:' + Math.min(100, Math.round((state.stats[k] || 0) / maxStat * 100)) + '%' }))))));
+    hero.replaceChildren(
+      el('div', { class: 'motes', 'aria-hidden': 'true' }, ...Array.from({ length: 16 }, (_, i) => el('i', { style: 'right:' + (3 + i * 6.2) + '%;animation-duration:' + (8 + (i * 7) % 7) + 's;animation-delay:-' + ((i * 3) % 11) + 's' }))),
+      el('div', { class: 'avatar', 'aria-hidden': 'true' }, el('img', { src: 'hunter-avatar.webp', alt: '' })),
+      el('div', { class: 'hero-body' }, lvlBlock, status),
+      el('p', { class: 'subtitle', id: 'subtitle' }));
+  } else {
+    const { counted, full, best } = commitStats();
+    const streakBlock = el('div', { class: 'streak-block' },
+      el('div', { class: 'ink-streak-row' },
+        el('div', { class: 'ink-streak-side' },
+          el('span', { class: 'streak-lbl', text: streakLbl }),
+          el('div', { class: 'grace-row' }, el('span', { text: L('أيام السماح', 'Grace days') }), graceDots)),
+        el('span', { class: 'streak-num', text: String(si.streak) })),
+      el('span', { class: 'ink-meta-line' },
+        L('أطول سلسلة ', 'Longest streak '), el('b', { text: String(best) }), '  ·  ',
+        L('الالتزام ', 'Commitment '), el('b', { dir: 'ltr', text: counted ? Math.round(full / counted * 100) + '%' : '—' })));
+    hero.replaceChildren(
+      el('div', { class: 'hero-body ink-grid' }, lvlBlock, moonBlock(), streakBlock),
+      el('p', { class: 'subtitle', id: 'subtitle' }));
+  }
   updateSubtitle();
+}
+
+// اختبار الرتبة الجاية: شرط المستوى وشرط السلسلة
+function rankTrial(next, level, reach) {
+  const row = (label, v, need) => el('div', { class: 'rt-row' + (v >= need ? ' met' : '') },
+    el('span', { class: 'rt-top' }, el('span', { text: label }), el('span', { class: 'rt-val', dir: 'ltr', text: v + ' / ' + need })),
+    el('span', { class: 'rt-bar' }, el('span', { style: 'width:' + Math.min(100, Math.round(v / need * 100)) + '%' })));
+  return el('div', { class: 'rank-trial' },
+    el('span', { class: 'rt-title', text: L('اختبار الرتبة ', 'Rank ') + next.l + L('', ' trial') }),
+    el('div', { class: 'rt-rows' }, row(L('المستوى', 'Level'), level, next.lv), row(L('السلسلة', 'Streak'), reach, next.streak)));
+}
+
+// القمر: يكتمل مع المهام اليومية، ونقطة لكل مهمة حوله
+function moonBlock() {
+  const t = todayIso();
+  const fx = fixedFor(t);
+  const doneN = fx.filter((q) => doneIds(t).includes(q.id)).length;
+  const rest = isRest(t);
+  const f = fx.length ? doneN / fx.length : 0;
+  const R = 104, C = 140;
+  const rx = R * Math.abs(1 - 2 * f);
+  const d = 'M' + C + ' ' + (C - R) + ' A' + R + ' ' + R + ' 0 0 1 ' + C + ' ' + (C + R) + ' A' + rx.toFixed(2) + ' ' + R + ' 0 0 ' + (f > 0.5 ? 1 : 0) + ' ' + C + ' ' + (C - R) + ' Z';
+  const name = rest ? L('قمر نائم', 'Sleeping moon') : f <= 0 ? L('محاق', 'New moon') : f < 0.45 ? L('هلال', 'Crescent') : f <= 0.55 ? L('تربيع', 'Half moon') : f < 1 ? L('أحدب', 'Gibbous') : L('اكتمل البدر', 'Full moon');
+  const svg = sv('svg', { viewBox: '0 0 280 280', class: 'moon-svg', role: 'img', 'aria-label': L('قمر اليوم: ', "Today's moon: ") + name + L('، أنجزت ', ', ') + doneN + L(' من ', ' of ') + fx.length + L(' مهام يومية', ' daily quests done') },
+    sv('defs', {}, sv('clipPath', { id: 'moonLit' }, sv('path', { d }))),
+    sv('circle', { cx: C, cy: C, r: 130, class: 'm-orbit' }),
+    sv('circle', { cx: C, cy: C, r: R, class: 'm-disc' }),
+    sv('path', { d, class: 'm-lit' + (rest ? ' dim' : '') }),
+    sv('g', { 'clip-path': 'url(#moonLit)', class: 'm-craters' },
+      sv('circle', { cx: 108, cy: 104, r: 15 }), sv('circle', { cx: 168, cy: 156, r: 21 }), sv('circle', { cx: 128, cy: 180, r: 9 }),
+      sv('circle', { cx: 178, cy: 98, r: 7 }), sv('circle', { cx: 92, cy: 154, r: 11 })),
+    ...fx.slice(0, 12).map((q, i, arr) => {
+      const a = (-90 + i * 360 / arr.length) * Math.PI / 180;
+      return sv('circle', { cx: (C + 130 * Math.cos(a)).toFixed(1), cy: (C + 130 * Math.sin(a)).toFixed(1), r: 5.5, class: 'm-dot' + (doneIds(t).includes(q.id) ? ' on' : '') });
+    }));
+  return el('div', { class: 'moon-block' + (f >= 1 && !rest ? ' full' : '') },
+    el('div', { class: 'moon-wrap', style: '--halo:' + (0.05 + f * 0.16).toFixed(3) }, svg),
+    el('span', { class: 'moon-name', text: name }),
+    el('span', { class: 'moon-sub', text: rest ? L('يوم راحة: القمر يرتاح الليلة', 'Rest day: the moon rests tonight') : L('المهام اليومية: ' + doneN + ' من ' + fx.length, 'Daily quests: ' + doneN + ' of ' + fx.length) }));
 }
 
 function updateSubtitle() {
@@ -883,9 +993,10 @@ function updateSubtitle() {
   const n = new Date();
   const toMid = 86400 - (n.getHours() * 3600 + n.getMinutes() * 60 + n.getSeconds());
   const clock = pad(Math.floor(toMid / 3600)) + ':' + pad(Math.floor(toMid % 3600 / 60)) + ':' + pad(toMid % 60);
-  sub.textContent = isRest(todayIso()) ? L('يوم راحة. استرح، وسلسلتك محفوظة.', 'Rest day. Recharge, your streak is safe.')
+  const datePart = theme() === 'ink' ? WEEKDAYS[n.getDay()] + ' ' + n.getDate() + ' ' + MONTHS[n.getMonth()] + ' ' + n.getFullYear() + '  ·  ' : '';
+  sub.textContent = datePart + (isRest(todayIso()) ? L('يوم راحة. استرح، وسلسلتك محفوظة.', 'Rest day. Recharge, your streak is safe.')
     : left === 0 ? L('أكملت كل مهام اليوم. يبدأ يوم جديد بعد ', 'All quests done. A new day starts in ') + clock
-    : L('تبقّت ' + left + (left === 1 ? ' مهمة' : ' مهام') + '، ويُعاد ضبط اليوم بعد ', left + (left === 1 ? ' quest' : ' quests') + ' left. The day resets in ') + clock;
+    : L('تبقّت ' + left + (left === 1 ? ' مهمة' : ' مهام') + '، ويُعاد ضبط اليوم بعد ', left + (left === 1 ? ' quest' : ' quests') + ' left. The day resets in ') + clock);
 }
 
 function taskRow(t) {
@@ -922,6 +1033,11 @@ function taskRow(t) {
     title: isMit ? L('مهمة اليوم الأهم', "Today's top quest") : L('اجعلها مهمة اليوم الأهم', "Make it today's top quest"), onclick: () => setMit(key)
   }, starIcon());
   const li = el('li', { class: 'task-li' + (isMit ? ' is-mit' : '') }, star, btn);
+  if (t.kind === 'gate' && t.ref.subs && t.ref.subs.length) { li.classList.add('has-subs'); li.append(subsBlock(t.ref)); }
+  if (justToggled === key && t.done) {
+    li.classList.add('swept');
+    li.append(el('span', { class: 'xpf', 'aria-hidden': 'true', dir: 'ltr', text: '+' + (t.xp + (isMit ? MIT_XP : 0)) }));
+  }
   if (editing) {
     li.append(el('span', { class: 'row-tools' },
       el('button', { class: 'mini', onclick: () => openEdit(t.kind, t.id), 'aria-label': L('تعديل ', 'Edit ') + t.title, text: L('تعديل', 'Edit') }),
@@ -944,7 +1060,9 @@ function renderTasks() {
   list.replaceChildren();
   const byTime = (a, b) => a.time.localeCompare(b.time);
 
-  if (!all.length) {
+  if (isRest(t)) {
+    list.append(restCard());
+  } else if (!all.length) {
     list.append(el('p', { class: 'empty', text: L('ما عندك مهام اليوم. اكتب أول مهمة فوق، وأضف «يومي» لو تبيها تتكرر.', 'No quests today. Type your first one above, and add "daily" if it repeats.') }));
   } else if (theme() === 'anime') {
     if (fixed.length) list.append(el('h3', { class: 'grp', text: L('كل يوم', 'Daily') }), el('ul', { class: 'tasks' }, fixed.sort(byTime).map(taskRow)));
@@ -978,7 +1096,7 @@ function renderTasks() {
           el('button', { class: 'mini danger', onclick: () => deleteTask('gate', g.id), 'aria-label': L('حذف ', 'Delete ') + g.title, text: L('حذف', 'Delete') })) : null);
     })));
   }
-  $('bonusLine').textContent = isComplete(t) ? L('أكملت مهامك اليومية، وأخذت +' + DAY_BONUS_XP + ' XP.', 'Daily quests done. You earned +' + DAY_BONUS_XP + ' XP.') : L('أكمل كل المهام اليومية لتحصل على +' + DAY_BONUS_XP + ' XP إضافية.', 'Finish all daily quests to earn +' + DAY_BONUS_XP + ' bonus XP.');
+  renderBonusLine(t);
 }
 
 function nowRow(nowStr) {
@@ -1007,7 +1125,9 @@ function renderTimer() {
   $('timerDisplay').classList.toggle('running', state.timer.status === 'running');
   // الحلقة تنقص مع الوقت (pathLength = 1000)
   $('timerRing').style.strokeDashoffset = String(Math.round((1 - (total ? left / total : 1)) * 1000));
+  placeOrbit('timerOrbit', total ? left / total : 1);
   $('timerStart').textContent = state.timer.status === 'running' ? L('إيقاف مؤقت', 'Pause') : state.timer.status === 'paused' ? L('كمّل', 'Resume') : L('ادخل البوابة', 'Enter the gate');
+  renderImmersive(left, total, ph, plan);
   $('timerMinutes').value = String(state.timer.minutes);
   $('timerMinutes').disabled = state.timer.status !== 'idle';
   $('timerAuto').checked = state.timer.auto;
@@ -1082,18 +1202,21 @@ function renderHeat() {
     const iso = addDays(start, i);
     if (iso > today) { box.append(el('span', { class: 'cell future', title: iso }, el('i'))); continue; }
     if (iso < state.startDate) { box.append(el('span', { class: 'cell before', title: iso + L('، قبل ما تبدأ', ', before you started') }, el('i'))); continue; }
+    const pick = () => { heatSel = iso; renderHeat(); };
     const r = iso < state.startDate && !state.completedDates.includes(iso) ? -1 : dayRatio(iso);
     const lvl = isRest(iso) ? 'rest' : r < 0 ? 'l0' : r === 0 ? 'l0' : r < 0.5 ? 'l1' : r < 1 ? 'l2' : 'l3';
     if (r > 0) active++;
     total++;
-    box.append(el('span', { class: 'cell ' + lvl + (iso === today ? ' today' : ''), title: iso + (r >= 0 ? L('، ', ', ') + Math.round(r * 100) + '%' : '') }, el('i')));
+    const linked = state.completedDates.includes(iso) && i % 7 !== 6 && addDays(iso, 1) <= today && state.completedDates.includes(addDays(iso, 1));
+    box.append(el('button', { type: 'button', class: 'cell ' + lvl + (iso === today ? ' today' : '') + (iso === heatSel ? ' sel' : '') + (linked ? ' link' : ''), 'aria-pressed': String(iso === heatSel), 'aria-label': dayLabel(iso), onclick: pick }, el('i')));
   }
+  renderHeatDay();
   box.setAttribute('aria-label', L('خريطة الالتزام: نشطت في ' + active + ' من ' + total + ' يوماً' + (fromStart ? ' منذ بدايتك' : ''), 'Commitment map: active on ' + active + ' of ' + total + ' days' + (fromStart ? ' since you started' : '')));
   renderHeatStats();
 }
 
 // جنب السجل: أطول سلسلة، والأيام المكتملة من البداية، ونسبة الالتزام
-function renderHeatStats() {
+function commitStats() {
   const today = todayIso();
   const done = new Set(state.completedDates);
   let counted = 0, full = 0;
@@ -1103,7 +1226,10 @@ function renderHeatStats() {
     counted++;
     if (done.has(d)) full++;
   }
-  const best = Math.max(state.bestStreak, streakInfo().streak);
+  return { counted, full, best: Math.max(state.bestStreak, streakInfo().streak) };
+}
+function renderHeatStats() {
+  const { counted, full, best } = commitStats();
   const items = [
     ['hs-streak', L('أطول سلسلة', 'Longest streak'), best ? daysAr(best) : '0'],
     ['hs-days', L('أيام مكتملة من البداية', 'Days completed since start'), full + L(' من ', ' of ') + counted],
@@ -1124,40 +1250,55 @@ function renderStats(si) {
     [rate + '%', L('إنجازك في آخر 30 يوماً', 'completion, last 30 days')]
   ];
   $('numbers').replaceChildren(...nums.map(([n, l]) => el('div', { class: 'num' }, el('b', { text: n }), el('span', { text: l }))));
-  renderXpChart(days);
+  const range = []; for (let i = chartRange - 1; i >= 0; i--) range.push(addDays(todayIso(), -i));
+  renderXpChart(range);
   renderRadar();
+  renderWeek();
 }
 
 function renderXpChart(days) {
-  const W = 600, H = 220, P = 28;
+  // العرض حسب مكان الرسم، عشان يبقى حجم الخط ثابت
+  const W = Math.max(300, Math.min(1400, Math.round($('xpChart').clientWidth) || 600)), H = W < 500 ? 200 : 240, P = 28;
+  const A0 = EN ? 'start' : 'end', A1 = EN ? 'end' : 'start';
   const vals = days.map((d) => state.xpByDate[d] || 0);
   const max = Math.max(50, ...vals);
   const x = (i) => P + i * (W - 2 * P) / (days.length - 1);
   const y = (v) => H - P - v / max * (H - 2 * P);
   const pts = vals.map((v, i) => x(i).toFixed(1) + ',' + y(v).toFixed(1)).join(' ');
-  const svg = sv('svg', { viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': L('الخبرة اليومية لآخر 30 يوماً، أعلى يوم ', 'Daily XP for the last 30 days, best day ') + Math.max(...vals) + ' XP', class: 'xp-svg' },
+  const sum = vals.reduce((a, v) => a + v, 0);
+  $('xpSum').textContent = L('المجموع ', 'Total ') + sum.toLocaleString('en') + ' XP · ' + L('المتوسط اليومي ', 'Daily average ') + Math.round(sum / days.length);
+  document.querySelectorAll('.range [data-range]').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.range) === days.length)));
+  const svg = sv('svg', { viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': L('الخبرة اليومية لآخر ' + days.length + ' يوم، أعلى يوم ', 'Daily XP for the last ' + days.length + ' days, best day ') + Math.max(...vals) + ' XP', class: 'xp-svg' },
     sv('line', { x1: P, y1: H - P, x2: W - P, y2: H - P, class: 'axis' }),
     sv('line', { x1: P, y1: P, x2: W - P, y2: P, class: 'grid' }),
-    sv('text', { x: W - P, y: P - 8, class: 'lbl', 'text-anchor': 'end' }, document.createTextNode(max + ' XP')),
+    sv('text', { x: W - P, y: P - 8, class: 'lbl', 'text-anchor': A1 }, document.createTextNode(max + ' XP')),
     sv('polygon', { points: x(0) + ',' + (H - P) + ' ' + pts + ' ' + x(days.length - 1) + ',' + (H - P), class: 'area' }),
     sv('polyline', { points: pts, class: 'line' }),
-    ...vals.map((v, i) => sv('circle', { cx: x(i), cy: y(v), r: i === days.length - 1 ? 4.5 : 2.5, class: 'dot' },
+    ...vals.map((v, i) => sv('circle', { cx: x(i), cy: y(v), r: i === days.length - 1 ? 5 : (days.length > 10 ? 2.5 : 3.5), class: 'dot' + (i === days.length - 1 ? ' last' : '') },
       sv('title', {}, document.createTextNode(days[i] + ': ' + v + ' XP')))),
-    sv('text', { x: x(0), y: H - 8, class: 'lbl', 'text-anchor': 'start' }, document.createTextNode(days[0].slice(5))),
-    sv('text', { x: x(days.length - 1), y: H - 8, class: 'lbl', 'text-anchor': 'end' }, document.createTextNode(L('اليوم', 'Today'))));
+    sv('text', { x: x(0), y: H - 8, class: 'lbl', 'text-anchor': A0 }, document.createTextNode(dateOf(days[0]).getDate() + ' ' + MONTHS[dateOf(days[0]).getMonth()])),
+    sv('text', { x: x(days.length - 1), y: H - 8, class: 'lbl', 'text-anchor': A1 }, document.createTextNode(L('اليوم', 'Today'))));
   $('xpChart').replaceChildren(svg);
 }
 
 function renderRadar() {
   const S = 300, C = S / 2, R = 105;
   const vals = STATS.map((k) => state.stats[k] || 0);
+  // القدرات قبل أسبوع = الحالية ناقص اللي انكسب في آخر 7 أيام
+  const since = addDays(todayIso(), -6);
+  const gain = {}; STATS.forEach((k) => { gain[k] = 0; });
+  Object.values(state.rewards).forEach((r) => { if (r.stat && r.date >= since) gain[r.stat] = (gain[r.stat] || 0) + 1; });
+  const prev = STATS.map((k) => Math.max(0, (state.stats[k] || 0) - gain[k]));
   const max = Math.max(20, ...vals);
+  const top = STATS.slice().sort((a, b) => gain[b] - gain[a])[0];
+  $('radarNote').textContent = gain[top] > 0 ? L('أكثر قدرة نمت هالأسبوع: ', 'Most grown this week: ') + STAT_AR[top] + ' +' + gain[top] : L('ما نمت أي قدرة هالأسبوع للحين. أنجز مهمة وتنمو قدرتها.', 'No ability has grown this week yet. Finish a quest to grow its ability.');
   const ang = (i) => -Math.PI / 2 + i * 2 * Math.PI / STATS.length;
   const pt = (i, r) => (C + Math.cos(ang(i)) * r).toFixed(1) + ',' + (C + Math.sin(ang(i)) * r).toFixed(1);
   const rings = [0.25, 0.5, 0.75, 1].map((f) => sv('polygon', { points: STATS.map((_, i) => pt(i, R * f)).join(' '), class: 'grid' }));
   const svg = sv('svg', { viewBox: '0 0 ' + S + ' ' + S, role: 'img', 'aria-label': L('القدرات: ', 'Abilities: ') + STATS.map((k) => STAT_AR[k] + ' ' + state.stats[k]).join(L('، ', ', ')), class: 'radar-svg' },
     ...rings,
     ...STATS.map((_, i) => sv('line', { x1: C, y1: C, x2: pt(i, R).split(',')[0], y2: pt(i, R).split(',')[1], class: 'grid' })),
+    sv('polygon', { points: prev.map((v, i) => pt(i, R * v / max)).join(' '), class: 'prev' }),
     sv('polygon', { points: vals.map((v, i) => pt(i, R * v / max)).join(' '), class: 'area' }),
     // كل قدرة بلونها، ونفس اللون اللي يطلع جنب المهمة
     ...STATS.map((k, i) => { const [cx, cy] = pt(i, R * vals[i] / max).split(','); return sv('circle', { cx, cy, r: 5, class: 'vdot s-' + k }); }),
@@ -1217,9 +1358,10 @@ function bind() {
     addParsed(p);
     $('quickInput').value = '';
     $('quickHint').textContent = HINT;
+    $('quickHint').classList.remove('chips');
   });
   const HINT = $('quickHint').textContent;
-  const preview = () => { const p = readQuick(); $('quickHint').textContent = p ? L('بتنضاف: ', 'Will add: ') + describeQuick(p) : HINT; };
+  const preview = () => { const p = readQuick(); if (p) quickChips(p); else $('quickHint').textContent = HINT; $('quickHint').classList.toggle('chips', Boolean(p)); };
   $('quickInput').addEventListener('input', preview);
   document.querySelectorAll('input[name="repeat"]').forEach((r) => r.addEventListener('change', preview));
 
@@ -1264,6 +1406,8 @@ function bind() {
   });
 
   bindExtras();
+  bindMore();
+  bindLook();
   window.addEventListener('hashchange', importFromHash);
   window.addEventListener('storage', (e) => { if (e.key === KEY && e.newValue) { try { state = normalize(JSON.parse(e.newValue)); render(); runTimer(); } catch (err) { /* تجاهل */ } } });
 }
@@ -1557,6 +1701,235 @@ function bindExtras() {
   });
   // لو رجعت للصفحة بعد 8 م أو بيوم جديد، يطلع التقرير
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') setTimeout(maybeBrief, 600); });
+}
+
+/* ============ 15. إضافات 26 أكتوبر ============ */
+// --- التراجع من الإشعار ---
+function undoToggle(kind, id) {
+  return {
+    label: L('تراجع', 'Undo'),
+    run: () => {
+      const { fixed, gates } = todayTasks();
+      const t = fixed.concat(gates).find((x) => x.kind === kind && x.id === id);
+      if (t && t.done) { toggleTask(kind, id); toast(L('رجّعتها، وانسحبت الخبرة', 'Undone, the XP was removed'), ''); }
+    }
+  };
+}
+function undoAdd(kind, id) {
+  return {
+    label: L('تراجع', 'Undo'),
+    run: () => {
+      const t = todayIso();
+      if (kind === 'fixed') {
+        if (!state.fixed.some((x) => x.id === id)) return;
+        if (doneIds(t).includes(id)) { state.log[t] = doneIds(t).filter((x) => x !== id); revoke('fixed:' + t + ':' + id); }
+        state.fixed = state.fixed.filter((x) => x.id !== id);
+        syncDay(t);
+      } else {
+        const g = state.gates.find((x) => x.id === id);
+        if (!g) return;
+        if (g.done) revoke('gate:' + id);
+        state.gates = state.gates.filter((x) => x.id !== id);
+      }
+      if (state.timer.link === kind + ':' + id) state.timer.link = '';
+      if (state.mit.key === kind + ':' + id) state.mit = { date: '', key: '' };
+      syncMit();
+      commit();
+      toast(L('شلتها من القائمة', 'Removed from the list'), '');
+    }
+  };
+}
+
+// --- خطوات البوابة ---
+function subsBlock(g) {
+  const done = g.subs.filter((x) => x.done).length;
+  const pct = Math.round(done / g.subs.length * 100);
+  return el('div', { class: 'subs' },
+    el('div', { class: 'subs-head' },
+      el('span', { text: L('الخطوات ', 'Steps ') + done + '/' + g.subs.length }),
+      el('span', { class: 'bar', 'aria-hidden': 'true' }, el('span', { style: 'width:' + pct + '%' }))),
+    el('ul', { class: 'subs-list' }, g.subs.map((x) => el('li', {},
+      el('button', {
+        type: 'button', class: 'sub' + (x.done ? ' done' : ''), 'aria-pressed': String(x.done),
+        'aria-label': (x.done ? L('إلغاء الخطوة: ', 'Undo step: ') : L('أنجز الخطوة: ', 'Complete step: ')) + x.title,
+        onclick: () => toggleSub(g.id, x.id)
+      }, el('span', { class: 'sub-box', 'aria-hidden': 'true' }), el('span', { class: 'sub-title', text: x.title }))))));
+}
+function toggleSub(gid, sid) {
+  const g = state.gates.find((x) => x.id === gid);
+  const sub = g && g.subs.find((x) => x.id === sid);
+  if (!sub) return;
+  sub.done = !sub.done;
+  sound(sub.done ? 'done' : 'undo');
+  // آخر خطوة تنجز البوابة كلها (وتقدر تتراجع من الإشعار)
+  if (sub.done && !g.done && g.date <= todayIso() && g.subs.every((x) => x.done)) { toggleTask('gate', gid); return; }
+  commit();
+}
+
+// --- تفاصيل أي يوم في السجل ---
+let heatSel = '';
+function dayStatus(iso) {
+  if (isRest(iso)) return { k: 'rest', t: L('يوم راحة', 'Rest day') };
+  if (state.completedDates.includes(iso)) return { k: 'done', t: L('مكتمل', 'Complete') };
+  if (isOff(iso) && !state.gates.some((g) => g.date === iso)) return { k: 'off', t: L('ما فيه مهام', 'No quests') };
+  if (iso === todayIso()) return { k: 'today', t: L('اليوم، للحين ما خلص', 'Today, still going') };
+  return dayRatio(iso) > 0 ? { k: 'part', t: L('جزئي', 'Partial') } : { k: 'miss', t: L('فائت', 'Missed') };
+}
+function dayLabel(iso) {
+  const d = dateOf(iso);
+  return WEEKDAYS[d.getDay()] + L('، ', ', ') + d.getDate() + ' ' + MONTHS[d.getMonth()] + L('، ', ', ') + dayStatus(iso).t;
+}
+function renderHeatDay() {
+  const box = $('heatDay');
+  if (!box) return;
+  if (!heatSel) { box.replaceChildren(el('span', { class: 'hd-hint', text: L('اضغط أي يوم في السجل وتطلع لك تفاصيله.', 'Tap any day in the record to see its details.') })); return; }
+  const d = dateOf(heatSel);
+  const st = dayStatus(heatSel);
+  const app = fixedFor(heatSel);
+  const done = doneIds(heatSel).filter((id) => app.some((q) => q.id === id)).length;
+  const gates = state.gates.filter((g) => g.date === heatSel);
+  const focus = Object.entries(state.rewards).filter(([k, r]) => k.startsWith('focus:') && r.date === heatSel).reduce((a, [, r]) => a + r.xp / 3, 0);
+  const xp = state.xpByDate[heatSel] || 0;
+  const parts = [];
+  if (app.length) parts.push(L('اليومية ', 'Daily ') + done + L(' من ', ' of ') + app.length);
+  if (gates.length) parts.push(L('البوابات ', 'Gates ') + gates.filter((g) => g.done).length + L(' من ', ' of ') + gates.length);
+  if (focus) parts.push(L('تركيز ', 'Focus ') + Math.round(focus) + L(' د', ' min'));
+  box.replaceChildren(
+    el('b', { class: 'hd-date', text: WEEKDAYS[d.getDay()] + L('، ', ', ') + d.getDate() + ' ' + MONTHS[d.getMonth()] + (heatSel === todayIso() ? L(' (اليوم)', ' (today)') : '') }),
+    el('span', { class: 'hd-st hd-' + st.k, text: st.t }),
+    ...parts.map((x) => el('span', { class: 'hd-info', text: x })),
+    el('span', { class: 'hd-xp', dir: 'ltr', text: '+' + xp + ' XP' }),
+    el('button', { type: 'button', class: 'mini hd-close', onclick: () => { heatSel = ''; renderHeat(); }, 'aria-label': L('إخفاء التفاصيل', 'Hide details'), text: '×' }));
+}
+
+// --- وضع الغمر: المؤقت بملء الشاشة وكل شي ثاني يختفي ---
+function openImmersive() {
+  const dlg = $('immersive');
+  if (dlg.open) return;
+  dlg.showModal();
+  document.documentElement.classList.add('immersed');
+  // ملء الشاشة على النافذة نفسها (لو على الصفحة كلها، تغطي النافذة)
+  try { if (dlg.requestFullscreen && !document.fullscreenElement) dlg.requestFullscreen().catch(() => {}); } catch (e) { /* بدون ملء الشاشة */ }
+  renderTimer();
+  $('imToggle').focus();
+}
+function closeImmersive() { const dlg = $('immersive'); if (dlg.open) dlg.close(); }
+function renderImmersive(left, total, ph) {
+  const dlg = $('immersive');
+  if (!dlg || !dlg.open) return;
+  const { fixed, gates } = todayTasks();
+  const linked = state.timer.link ? fixed.concat(gates).find((x) => x.kind + ':' + x.id === state.timer.link) : null;
+  $('imTask').textContent = linked ? linked.title : L('جلسة تركيز حرة', 'Free focus session');
+  $('imPhase').textContent = $('timerPhase').textContent;
+  $('imTime').textContent = $('timerDisplay').textContent;
+  $('imSub').textContent = $('timerSub').textContent;
+  $('imRing').style.strokeDashoffset = String(Math.round((1 - (total ? left / total : 1)) * 1000));
+  placeOrbit('imOrbit', total ? left / total : 1);
+  $('imToggle').textContent = $('timerStart').textContent;
+  $('imSteps').hidden = $('timerSteps').hidden;
+  $('imSteps').replaceChildren(...[...$('timerSteps').children].map((c) => c.cloneNode(true)));
+  dlg.classList.toggle('on-break', ph.type === 'break' && state.timer.status !== 'idle');
+}
+
+function bindMore() {
+  $('immBtn').addEventListener('click', openImmersive);
+  $('imToggle').addEventListener('click', timerToggle);
+  $('imExit').addEventListener('click', closeImmersive);
+  $('immersive').addEventListener('close', () => {
+    document.documentElement.classList.remove('immersed');
+    try { if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {}); } catch (e) { /* تجاهل */ }
+  });
+}
+
+/* ============ 16. الشكل الجديد: النظام الحي ودفتر القمر ============ */
+let chartRange = 30;
+
+// يوم الراحة: بطاقة بدل قائمة المهام
+function restCard() {
+  const anime = theme() === 'anime';
+  return el('div', { class: 'rest-card' },
+    el('span', { class: 'rest-icon', 'aria-hidden': 'true' }),
+    el('div', { class: 'rest-txt' },
+      el('p', { class: 'rest-kicker', text: anime ? L('[ يوم استشفاء ]', '[ RECOVERY DAY ]') : L('يوم راحة', 'Rest day') }),
+      el('p', { class: 'rest-main', text: L('اليوم محايد: سلسلتك محفوظة وما ينحسب من أيام السماح.', "Today is neutral: your streak is safe and it doesn't use a grace day.") }),
+      el('p', { class: 'rest-sub', text: L('مهامك ترجع بكرة. ولو تبيها اليوم، اضغط «إلغاء يوم الراحة».', 'Your quests come back tomorrow. To get them today, press "Cancel rest day".') })));
+}
+
+// سطر المكافأة: يصير شريط احتفال لما يكتمل اليوم
+function renderBonusLine(t) {
+  const box = $('bonusLine');
+  const done = isComplete(t);
+  box.classList.toggle('complete', done);
+  if (!done) { box.textContent = L('أكمل كل المهام اليومية لتحصل على +' + DAY_BONUS_XP + ' XP إضافية.', 'Finish all daily quests to earn +' + DAY_BONUS_XP + ' bonus XP.'); return; }
+  const anime = theme() === 'anime';
+  box.replaceChildren(
+    el('span', { class: 'bl-tag', text: anime ? L('[ اكتملت مهام اليوم ]', '[ ALL DAILY QUESTS COMPLETE ]') : L('اكتمل البدر', 'The moon is full') }),
+    el('span', { class: 'bl-txt', text: L('المكافأة ', 'Bonus ') + '+' + DAY_BONUS_XP + ' XP  ·  ' + L('السلسلة صارت ', 'Streak is now ') + streakInfo().streak }));
+}
+
+// نقطة تدور مع المؤقت (تبان في حبر الليل)
+function placeOrbit(id, frac) {
+  const o = $(id);
+  if (!o) return;
+  const a = (-90 + 360 * Math.max(0, Math.min(1, frac))) * Math.PI / 180;
+  o.setAttribute('cx', (120 + 108 * Math.cos(a)).toFixed(1));
+  o.setAttribute('cy', (120 + 108 * Math.sin(a)).toFixed(1));
+}
+
+// معاينة الإضافة: شرائح تبيّن وش فهم النظام وأنت تكتب
+function quickChips(p) {
+  const chip = (txt, cls, ltrTxt) => el('span', { class: 'qchip ' + (cls || ''), dir: ltrTxt ? 'ltr' : null, text: txt });
+  $('quickHint').replaceChildren(
+    el('span', { class: 'qlabel', text: L('النظام فهم:', 'The System read:') }),
+    chip(p.kind === 'fixed' ? L('مهمة يومية', 'Daily quest') : L('بوابة ', 'Gate ') + p.rank, p.kind === 'fixed' ? 'q-daily' : 'q-gate'),
+    chip('«' + p.title + '»', 'q-title'),
+    p.kind === 'gate' ? chip(p.dateLabel, 'q-date') : null,
+    chip(fmt12(p.time), 'q-time'),
+    chip('#' + STAT_AR[p.stat], 'q-stat s-' + p.stat),
+    chip('+' + p.xp + ' XP', 'q-xp', true));
+}
+
+// الأسبوع اللي فات (الجمعة إلى الخميس)
+function renderWeek() {
+  const ws = addDays(weekStart(todayIso()), -7);
+  const range = Array.from({ length: 7 }, (_, i) => addDays(ws, i));
+  const prevRange = Array.from({ length: 7 }, (_, i) => addDays(ws, i - 7));
+  const doneSet = new Set(state.completedDates);
+  const counted = (rg) => rg.filter((d) => d >= state.startDate && !isRest(d) && !isOff(d));
+  const fullOf = (rg) => counted(rg).filter((d) => doneSet.has(d)).length;
+  const xpOf = (rg) => rg.reduce((a, d) => a + (state.xpByDate[d] || 0), 0);
+  const focusOn = (d) => Object.entries(state.rewards).filter(([k, r]) => k.startsWith('focus:') && r.date === d).reduce((a, [, r]) => a + r.xp / 3, 0);
+  const mins = range.map(focusOn);
+  const focusTot = mins.reduce((a, b) => a + b, 0);
+  const prevFocus = prevRange.map(focusOn).reduce((a, b) => a + b, 0);
+  const xp = xpOf(range), pxp = xpOf(prevRange);
+  let best = null;
+  range.forEach((d) => { const x = state.xpByDate[d] || 0; if (x > 0 && (!best || x > best.x)) best = { d, x }; });
+  const hm = (m) => { m = Math.round(m); return m >= 60 ? Math.floor(m / 60) + L('س ', 'h ') + (m % 60) + L('د', 'm') : m + L(' د', ' min'); };
+  const delta = (a, b, fmt) => b > 0 ? (a >= b ? '+' : '−') + fmt(Math.abs(a - b)) : '';
+  const d0 = dateOf(range[0]), d6 = dateOf(range[6]);
+  $('weekRange').textContent = WEEKDAYS[d0.getDay()] + ' ' + d0.getDate() + ' ' + MONTHS[d0.getMonth()] + L(' إلى ', ' to ') + WEEKDAYS[d6.getDay()] + ' ' + d6.getDate() + ' ' + MONTHS[d6.getMonth()];
+  const rows = [
+    [L('أيام مكتملة', 'Days completed'), fullOf(range) + ' / ' + counted(range).length, L('اللي قبله ', 'week before ') + fullOf(prevRange), ''],
+    [L('الخبرة', 'XP'), xp.toLocaleString('en'), pxp > 0 ? delta(xp, pxp, (v) => Math.round(v / pxp * 100) + '%') : '', xp >= pxp ? 'up' : 'down'],
+    [L('التركيز', 'Focus'), hm(focusTot), prevFocus > 0 ? delta(focusTot, prevFocus, hm) : '', focusTot >= prevFocus ? 'up' : 'down'],
+    [L('أفضل يوم', 'Best day'), best ? WEEKDAYS[dateOf(best.d).getDay()] : '—', best ? '+' + best.x + ' XP' : '', '']
+  ];
+  $('weekStats').replaceChildren(...rows.map(([l, v, c, k]) => el('div', {},
+    el('dt', { text: l }), el('dd', {}, el('b', { text: v }), c ? el('span', { class: 'wk-ch ' + k, dir: 'ltr', text: c }) : null))));
+  const maxM = Math.max(30, ...mins);
+  const top = Math.max(...mins);
+  $('weekBars').setAttribute('aria-label', L('دقائق التركيز: ', 'Focus minutes: ') + range.map((d, i) => WEEKDAYS[dateOf(d).getDay()] + ' ' + Math.round(mins[i])).join(L('، ', ', ')));
+  $('weekBars').replaceChildren(...range.map((d, i) => el('div', { class: 'wb' + (mins[i] > 0 && mins[i] === top ? ' top' : '') },
+    el('span', { class: 'wb-v', text: String(Math.round(mins[i])) }),
+    el('span', { class: 'wb-bar', style: 'height:' + Math.max(3, Math.round(mins[i] / maxM * 96)) + 'px' }),
+    el('span', { class: 'wb-d', text: WD_FROM_FRI[i] }))));
+}
+
+function bindLook() {
+  let rz = 0;
+  addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (view === 'stats') renderXpChart(Array.from({ length: chartRange }, (_, i) => addDays(todayIso(), i - chartRange + 1))); }, 200); });
+  document.querySelectorAll('.range [data-range]').forEach((b) => b.addEventListener('click', () => { chartRange = Number(b.dataset.range); renderStats(streakInfo()); }));
 }
 
 function start() {

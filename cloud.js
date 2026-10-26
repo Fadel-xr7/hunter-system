@@ -51,6 +51,14 @@ const Cloud = (() => {
     b.dataset.state = STATUS[s][1];
     b.dataset.tip = s === 'off' ? L('الحساب', 'Account') : STATUS[s][0];
     $('accStatus').textContent = STATUS[s][0];
+    // شارة صغيرة جنب زر الحساب: محفوظ / يحفظ / بدون نت
+    const chip = $('syncChip');
+    if (chip) {
+      const short = { synced: L('محفوظ في السحابة', 'Saved to cloud'), saving: L('يحفظ…', 'Saving…'), offline: L('بدون نت', 'Offline'), error: L('ما انحفظ للحين', 'Not saved yet'), guest: L('ضيف', 'Guest') }[s];
+      chip.hidden = !enabled || !short;
+      chip.textContent = short || '';
+      chip.dataset.state = STATUS[s][1];
+    }
   }
 
   // التطبيق نادى save(): نجدول رفع بعد ثانية ونص
