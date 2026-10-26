@@ -41,7 +41,9 @@ const Cloud = (() => {
     synced: [L('متزامن مع حسابك', 'Synced with your account'), 'ok'],
     saving: [L('يحفظ في حسابك…', 'Saving to your account…'), 'busy'],
     offline: [L('بدون نت: بيرفع لما يرجع الاتصال', "Offline: it'll upload when you're back online"), 'warn'],
-    error: [L('تعذّرت المزامنة، بنحاول مرة ثانية', "Sync failed, we'll try again"), 'warn']
+    error: [L('تعذّرت المزامنة، بنحاول مرة ثانية', "Sync failed, we'll try again"), 'warn'],
+    // قاعدة البيانات ترفض أي حساب بياناته فوق 5 ميغا (supabase/setup.sql)
+    toobig: [L('بياناتك تعدّت حد السحابة (5 ميغا)، فآخر تعديلاتك محفوظة في هذا المتصفح بس. نزّل نسخة احتياطية من القائمة.', 'Your data is over the cloud limit (5 MB), so your latest changes are only saved in this browser. Download a backup from the menu.'), 'warn']
   };
   function setStatus(s) {
     status = s;
@@ -54,7 +56,7 @@ const Cloud = (() => {
     // شارة صغيرة جنب زر الحساب: محفوظ / يحفظ / بدون نت
     const chip = $('syncChip');
     if (chip) {
-      const short = { synced: L('محفوظ في السحابة', 'Saved to cloud'), saving: L('يحفظ…', 'Saving…'), offline: L('بدون نت', 'Offline'), error: L('ما انحفظ للحين', 'Not saved yet'), guest: L('ضيف', 'Guest') }[s];
+      const short = { synced: L('محفوظ في السحابة', 'Saved to cloud'), saving: L('يحفظ…', 'Saving…'), offline: L('بدون نت', 'Offline'), error: L('ما انحفظ للحين', 'Not saved yet'), toobig: L('أكبر من الحد', 'Over the limit'), guest: L('ضيف', 'Guest') }[s];
       chip.hidden = !enabled || !short;
       chip.textContent = short || '';
       chip.dataset.state = STATUS[s][1];
@@ -104,8 +106,10 @@ const Cloud = (() => {
       writeMeta();
       setStatus('synced');
     } catch (e) {
-      setStatus(navigator.onLine ? 'error' : 'offline');
       clearTimeout(pushTimer);
+      // 23514 = تعدّى حد الحجم: ما نعيد المحاولة كل شوي، ننتظر تعديلك الجاي
+      if (e && e.code === '23514') { setStatus('toobig'); return; }
+      setStatus(navigator.onLine ? 'error' : 'offline');
       pushTimer = setTimeout(push, 15000);
     } finally { pushing = false; }
   }

@@ -3,7 +3,7 @@
 # dependencies = ["python-telegram-bot==21.6"]
 # ///
 """
-بوت تيليجرام لنظام سولو ليفلنق.
+بوت تيليجرام لنظام الصياد.
 
 ترسل له مهمة بسطر واحد، مثل:
     مهمة: مراجعة الكود الساعة 10 مساءً !A #ذكاء
@@ -16,6 +16,7 @@
 
 الإعدادات تُقرأ من ملف .env بجانب هذا الملف (انسخ .env.example إلى .env).
 """
+import html
 import logging
 import os
 import re
@@ -46,7 +47,7 @@ def load_env(path: Path) -> None:
 load_env(Path(__file__).with_name(".env"))
 
 TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
-SITE_URL = os.environ.get("SITE_URL", "http://127.0.0.1:5501/Final-Daily-Tasks-Project/index.html").strip()
+SITE_URL = os.environ.get("SITE_URL", "https://fadel-xr7.github.io/hunter-system/index.html").strip()
 ALLOWED_ID = os.environ.get("ALLOWED_USER_ID", "").strip()
 
 HELP = (
@@ -84,8 +85,9 @@ def is_english(update: Update, text: str = "") -> bool:
 
 
 def is_allowed(update: Update) -> bool:
+    """البوت يخدم صاحبه بس. وقبل ما تضبط ALLOWED_USER_ID ما يقبل مهام من أحد."""
     if not ALLOWED_ID:
-        return True  # قبل ما تضبط رقمك: يقبل الكل، لكن يذكّرك تضبطه
+        return False
     user = update.effective_user
     return bool(user) and str(user.id) == ALLOWED_ID
 
@@ -102,6 +104,10 @@ def button_ok(url: str) -> bool:
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user = update.effective_user
+    # بعد ما تضبط رقمك: أي أحد غيرك ما يرد عليه البوت أبداً
+    if ALLOWED_ID and not is_allowed(update):
+        log.warning("أمر مرفوض من %s", user.id if user else "?")
+        return
     en = is_english(update)
     msg = HELP_EN if en else HELP
     if not ALLOWED_ID and user:
@@ -115,19 +121,24 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 f"\n\n🔒 رقمك في تيليجرام: <code>{user.id}</code>\n"
                 "حطه في ملف .env عند ALLOWED_USER_ID عشان البوت يرد عليك أنت بس، وأعد تشغيله."
             )
-    await update.message.reply_text(msg, parse_mode=ParseMode.HTML)
+    if update.effective_message:
+        await update.effective_message.reply_text(msg, parse_mode=ParseMode.HTML)
 
 
 async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not is_allowed(update):
         log.warning("رسالة مرفوضة من %s", update.effective_user.id if update.effective_user else "?")
+        if not ALLOWED_ID and update.effective_message:
+            await update.effective_message.reply_text("🔒 The bot is not set up yet. Send /start to get your ID.\n"
+                                            "🔒 البوت ما انضبط للحين. أرسل /start عشان تعرف رقمك.")
         return
-    text = (update.message.text or "").strip()
+    message = update.effective_message
+    text = ((message.text if message else "") or "").strip()
     if not text:
         return
     en = is_english(update, text)
     if len(text) > 300:
-        await update.message.reply_text("⚠️ That message is too long, keep it under 300 characters." if en
+        await message.reply_text("⚠️ That message is too long, keep it under 300 characters." if en
                                         else "⚠️ الرسالة طويلة، خلها أقصر من 300 حرف.")
         return
 
@@ -139,19 +150,21 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     markup = None
     if button_ok(link):
         markup = InlineKeyboardMarkup([[InlineKeyboardButton("⚔️ Add it to the System" if en else "⚔️ أضفها للنظام", url=link)]])
-    await update.message.reply_text(reply, parse_mode=ParseMode.HTML, reply_markup=markup,
+    await message.reply_text(reply, parse_mode=ParseMode.HTML, reply_markup=markup,
                                     disable_web_page_preview=True)
 
 
 def escape(s: str) -> str:
-    return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    return html.escape(s, quote=False)
 
 
 def main() -> None:
+    if urlparse(SITE_URL).scheme not in ("http", "https"):
+        raise SystemExit("❌ SITE_URL لازم يبدأ بـ https:// أو http://")
     if not TOKEN:
         raise SystemExit("❌ ما فيه توكن. انسخ .env.example إلى .env وحط TELEGRAM_BOT_TOKEN.")
     if not ALLOWED_ID:
-        log.warning("ALLOWED_USER_ID فاضي: أرسل /start للبوت عشان تعرف رقمك وتضبطه.")
+        log.warning("ALLOWED_USER_ID فاضي: البوت ما يستقبل مهام. أرسل /start عشان تعرف رقمك وحطه في .env.")
     app = Application.builder().token(TOKEN).build()
     app.add_handler(CommandHandler(["start", "help"], start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))

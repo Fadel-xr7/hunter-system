@@ -89,7 +89,7 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round
 /* ============ 4. البطل ============ */
 /* --- أنمي: لقطة سينمائية فوق البوابة --- */
 .hero-anime { position: relative; overflow: hidden; display: flex; flex-direction: column; min-height: 470px;
-  background: linear-gradient(180deg, rgba(4, 9, 21, 0) 50%, rgba(4, 9, 21, .82) 86%, #040915 100%), linear-gradient(270deg, rgba(4, 9, 21, .94) 0%, rgba(4, 9, 21, .55) 40%, rgba(4, 9, 21, .18) 72%, rgba(4, 9, 21, .62) 100%), url(dungeon-gate.webp) center 40% / cover no-repeat; }
+  background: linear-gradient(180deg, rgba(4, 9, 21, 0) 50%, rgba(4, 9, 21, .82) 86%, #040915 100%), linear-gradient(270deg, rgba(4, 9, 21, .94) 0%, rgba(4, 9, 21, .55) 40%, rgba(4, 9, 21, .18) 72%, rgba(4, 9, 21, .62) 100%), url(../assets/dungeon-gate.webp) center 40% / cover no-repeat; }
 .hero-anime .avatar { position: absolute; top: 0; bottom: 48px; right: -10px; width: 430px; pointer-events: none; }
 .hero-anime .avatar img { width: 100%; height: 100%; object-fit: cover; object-position: center 18%; display: block; mix-blend-mode: lighten;
   -webkit-mask-image: radial-gradient(ellipse 60% 70% at 50% 45%, #000 55%, transparent 100%); mask-image: radial-gradient(ellipse 60% 70% at 50% 45%, #000 55%, transparent 100%); }
@@ -535,7 +535,7 @@ html.need-auth .view:not(#view-auth), html.need-auth .tabs, html.need-auth .tool
 .auth-tally line.on { stroke: var(--text); }
 
 /* أنمي: نافذة النظام فوق البوابة */
-[data-theme="anime"] #view-auth { background: radial-gradient(ellipse 55% 70% at 50% 50%, rgba(4, 9, 21, .35), rgba(4, 9, 21, .92) 75%), url(dungeon-gate.webp) center 40% / cover no-repeat; }
+[data-theme="anime"] #view-auth { background: radial-gradient(ellipse 55% 70% at 50% 50%, rgba(4, 9, 21, .35), rgba(4, 9, 21, .92) 75%), url(../assets/dungeon-gate.webp) center 40% / cover no-repeat; }
 [data-theme="anime"] .auth-card { padding: 30px 32px 26px; }
 [data-theme="anime"] .auth-card h1 { text-align: center; text-shadow: 0 0 18px rgba(127, 232, 255, .75), 0 0 2px #fff; }
 [data-theme="anime"] .auth-sub { text-align: center; }
@@ -772,7 +772,7 @@ html.lang-switching body { opacity: .4; transition: opacity .12s ease; }
 [dir="ltr"] .menu button { text-align: left; }
 [dir="ltr"] .icon-btn[data-tip]::before { left: auto; right: 0; }
 
-[dir="ltr"] .hero-anime { background: linear-gradient(180deg, rgba(4, 9, 21, 0) 50%, rgba(4, 9, 21, .82) 86%, #040915 100%), linear-gradient(90deg, rgba(4, 9, 21, .94) 0%, rgba(4, 9, 21, .55) 40%, rgba(4, 9, 21, .18) 72%, rgba(4, 9, 21, .62) 100%), url(dungeon-gate.webp) center 40% / cover no-repeat; }
+[dir="ltr"] .hero-anime { background: linear-gradient(180deg, rgba(4, 9, 21, 0) 50%, rgba(4, 9, 21, .82) 86%, #040915 100%), linear-gradient(90deg, rgba(4, 9, 21, .94) 0%, rgba(4, 9, 21, .55) 40%, rgba(4, 9, 21, .18) 72%, rgba(4, 9, 21, .62) 100%), url(../assets/dungeon-gate.webp) center 40% / cover no-repeat; }
 [dir="ltr"] .hero-anime .avatar { right: auto; left: -10px; }
 [dir="ltr"] .lvl-block { margin-right: 0; margin-left: 370px; }
 [dir="ltr"] .hero-ink .lvl-block { margin-left: 0; }

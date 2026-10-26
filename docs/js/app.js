@@ -41,7 +41,8 @@ function el(tag, props, ...kids) {
 const SVGNS = 'http://www.w3.org/2000/svg';
 function sv(tag, attrs, ...kids) {
   const n = document.createElementNS(SVGNS, tag);
-  for (const [k, v] of Object.entries(attrs || {})) n.setAttribute(k, v);
+  // style عن طريق CSSOM، لأن سياسة الأمان (CSP) تمنع خاصية style المكتوبة كنص
+  for (const [k, v] of Object.entries(attrs || {})) { if (k === 'style') n.style.cssText = v; else n.setAttribute(k, v); }
   for (const c of kids.flat()) if (c) n.append(c);
   return n;
 }
@@ -925,7 +926,7 @@ function renderHero(si) {
         el('div', { class: 'ab-bar' }, el('span', { style: 'width:' + Math.min(100, Math.round((state.stats[k] || 0) / maxStat * 100)) + '%' }))))));
     hero.replaceChildren(
       el('div', { class: 'motes', 'aria-hidden': 'true' }, ...Array.from({ length: 16 }, (_, i) => el('i', { style: 'right:' + (3 + i * 6.2) + '%;animation-duration:' + (8 + (i * 7) % 7) + 's;animation-delay:-' + ((i * 3) % 11) + 's' }))),
-      el('div', { class: 'avatar', 'aria-hidden': 'true' }, el('img', { src: 'hunter-avatar.webp', alt: '' })),
+      el('div', { class: 'avatar', 'aria-hidden': 'true' }, el('img', { src: 'assets/hunter-avatar.webp', alt: '' })),
       el('div', { class: 'hero-body' }, lvlBlock, status),
       el('p', { class: 'subtitle', id: 'subtitle' }));
   } else {

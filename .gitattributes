@@ -1,0 +1,10 @@
+# نهايات الأسطر: LF لكل الملفات النصية (يوقف تحذيرات LF/CRLF في ويندوز)
+* text=auto eol=lf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# ملفات ثنائية: لا تلمسها
+*.png binary
+*.webp binary
+*.jpg binary
+*.ico binary

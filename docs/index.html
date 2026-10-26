@@ -4,29 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>نظام الصياد</title>
-<script>
-  // يطبّق الواجهة واللغة المحفوظة قبل أول رسم عشان ما يصير وميض
-  try { var t = localStorage.getItem('hunterTheme_v6'); if (t === 'ink' || t === 'anime') document.documentElement.dataset.theme = t; } catch (e) {}
-  // اللغة: اختيارك المحفوظ، وأول مرة حسب لغة الجهاز (عربي إذا الجهاز عربي، وإلا English)
-  try {
-    var lg = localStorage.getItem('hunterLang_v6');
-    if (lg !== 'ar' && lg !== 'en') lg = /^ar\b/i.test((navigator.languages && navigator.languages[0]) || navigator.language || 'ar') ? 'ar' : 'en';
-    if (lg === 'en') { document.documentElement.lang = 'en'; document.documentElement.dir = 'ltr'; document.title = 'Hunter System'; }
-  } catch (e) {}
-  // شاشة الدخول: تظهر إذا ما فيه جلسة محفوظة وما اخترت تكمل كضيف
-  try {
-    var hasSession = Object.keys(localStorage).some(function (k) { return /^sb-.+-auth-token$/.test(k); });
-    if (!hasSession && !localStorage.getItem('hunterGuest_v6')) document.documentElement.classList.add('need-auth');
-  } catch (e) {}
-</script>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://rfhkbuopqcevzjfnsgrg.supabase.co; manifest-src 'self'; worker-src 'self'; media-src 'self' blob: data:; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<script src="js/boot.js"></script>
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icon-192.png">
-<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="assets/icon-192.png">
+<link rel="apple-touch-icon" href="assets/icon-192.png">
 <meta name="theme-color" content="#040915">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;700&family=Alexandria:wght@300;400;600&family=Amiri:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@400;500&family=Chakra+Petch:wght@500;700&family=Aref+Ruqaa:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 <div id="fx" aria-hidden="true"></div>
@@ -465,10 +453,10 @@
   </form>
 </dialog>
 
-<script src="i18n.js"></script>
+<script src="js/i18n.js"></script>
 <script src="vendor/supabase.js"></script>
-<script src="config.js"></script>
-<script src="app.js"></script>
-<script src="cloud.js"></script>
+<script src="js/config.js"></script>
+<script src="js/app.js"></script>
+<script src="js/cloud.js"></script>
 </body>
 </html>
