@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="ar" dir="rtl" data-theme="anime">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>نظام الصياد</title>
+<script>
+  // يطبّق الواجهة واللغة المحفوظة قبل أول رسم عشان ما يصير وميض
+  try { var t = localStorage.getItem('hunterTheme_v6'); if (t === 'ink' || t === 'anime') document.documentElement.dataset.theme = t; } catch (e) {}
+  try { if (localStorage.getItem('hunterLang_v6') === 'en') { document.documentElement.lang = 'en'; document.documentElement.dir = 'ltr'; document.title = 'Hunter System'; } } catch (e) {}
+  // شاشة الدخول: تظهر إذا ما فيه جلسة محفوظة وما اخترت تكمل كضيف
+  try {
+    var hasSession = Object.keys(localStorage).some(function (k) { return /^sb-.+-auth-token$/.test(k); });
+    if (!hasSession && !localStorage.getItem('hunterGuest_v6')) document.documentElement.classList.add('need-auth');
+  } catch (e) {}
+</script>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#040915">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;700&family=Alexandria:wght@300;400;600&family=Amiri:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="fx" aria-hidden="true"></div>
+<div id="toasts" role="status" aria-live="polite"></div>
+
+<header class="topbar">
+  <span class="brand" data-en="Hunter System">نظام الصياد</span>
+  <nav class="tabs" aria-label="الأقسام" data-en-aria="Sections">
+    <button class="tab" data-view="today" aria-current="page" data-en="Today">اليوم</button>
+    <button class="tab" data-view="stats" data-en="Analytics">التحليلات</button>
+    <button class="tab" data-view="ach" data-en="Achievements">الإنجازات</button>
+  </nav>
+  <div class="tools">
+    <button class="icon-btn" id="cloudBtn" aria-label="الحساب والمزامنة" data-en-aria="Account and sync" aria-haspopup="menu" aria-expanded="false" data-tip="الحساب" data-en-tip="Account">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.5 19H7a5 5 0 1 1 .9-9.9A6 6 0 0 1 19 10.5a4.3 4.3 0 0 1-1.5 8.5z"/></svg>
+    </button>
+    <div class="menu" id="accountMenu" role="menu" hidden>
+      <p class="menu-note acc-who" id="accWho"></p>
+      <p class="menu-note" id="accStatus"></p>
+      <button role="menuitem" id="accSync" data-en="Sync now">زامن الحين</button>
+      <button role="menuitem" id="accIn" data-en="Create an account or sign in">أنشئ حساب أو ادخل</button>
+      <button role="menuitem" id="accOut" class="danger-item" data-en="Sign out">تسجيل خروج</button>
+    </div>
+    <button class="icon-btn" id="tgBtn" aria-label="ربط تيليجرام" data-en-aria="Connect Telegram" data-tip="ربط تيليجرام" data-en-tip="Connect Telegram">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.5 3.5 2.8 10.7c-.9.4-.9 1.6 0 1.9l4.6 1.6 1.8 5.6c.2.7 1.1.9 1.6.4l2.6-2.4 4.7 3.5c.6.4 1.4.1 1.6-.6l3.1-15.2c.2-.9-.7-1.6-1.5-1.3z"/><path d="m7.4 14.2 10.4-7.4-7.9 9.2"/></svg>
+    </button>
+    <button class="icon-btn" id="soundBtn" aria-label="الصوت" data-en-aria="Sound" aria-pressed="true" data-tip="الصوت" data-en-tip="Sound">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4z"/><path class="wave" d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>
+    </button>
+    <button class="icon-btn" id="backupBtn" aria-label="النسخ الاحتياطي" data-en-aria="Backup" aria-haspopup="menu" aria-expanded="false" data-tip="نسخة احتياطية" data-en-tip="Backup">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>
+    </button>
+    <div class="menu" id="backupMenu" role="menu" hidden>
+      <button role="menuitem" id="exportBtn" data-en="Save a backup">حفظ نسخة احتياطية</button>
+      <button role="menuitem" id="importBtn" data-en="Restore from file">استعادة من ملف</button>
+      <button role="menuitem" id="resetBtn" class="danger-item" data-en="Start from zero">ابدأ من الصفر</button>
+      <p class="menu-note" id="backupNote"></p>
+    </div>
+    <input type="file" id="importFile" accept=".json,application/json" hidden>
+    <button class="icon-btn lang-btn" id="langBtn" aria-label="Switch to English" data-tip="English"><span lang="en">EN</span></button>
+    <button class="icon-btn" id="themeBtn" aria-label="تبديل الواجهة" data-en-aria="Switch theme" data-tip="تبديل الواجهة" data-en-tip="Switch theme">
+      <svg viewBox="0 0 24 24" aria-hidden="true" class="moon"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      <svg viewBox="0 0 24 24" aria-hidden="true" class="star"><path d="M12 3l2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5z"/></svg>
+    </button>
+  </div>
+</header>
+
+<!-- ============ الدخول والتسجيل ============ -->
+<div class="view" id="view-auth">
+  <div class="auth-wrap">
+    <section class="auth-hero" aria-hidden="true">
+      <p class="auth-big" data-en-html="A new line<br>every day.">كل يوم<br>سطر جديد.</p>
+      <p class="auth-lead" data-en="Write your quests, strike them off one by one, and watch the tally grow. Your account keeps all of it on your phone and your computer.">سجّل مهامك، واشطبها وحدة وحدة، وخلّ العدّاد يكبر. حسابك يحفظ كل هذا على جوالك وكمبيوترك.</p>
+      <div class="auth-tally" id="authTally"></div>
+    </section>
+
+    <section class="panel auth-card" id="authCard" aria-labelledby="authTitle">
+      <div class="sys-badge" aria-hidden="true"><span class="sys-mark">!</span><span data-en="System Notice">إشعار النظام</span></div>
+
+      <div id="authForms">
+        <h1 id="authTitle" data-en="Enter the System">ادخل النظام</h1>
+        <p id="authSub" class="auth-sub"></p>
+
+        <div class="auth-tabs" id="authTabs" role="tablist" aria-label="نوع الدخول" data-en-aria="Sign-in type">
+          <button type="button" role="tab" id="tabIn" aria-selected="true" data-en="Sign in">دخول</button>
+          <button type="button" role="tab" id="tabUp" aria-selected="false" data-en="New account">حساب جديد</button>
+        </div>
+
+        <div id="googleBox" class="google-box">
+          <button type="button" class="google-btn" id="googleBtn" data-en="Continue with Google">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+            المتابعة بحساب Google
+          </button>
+          <p class="note" id="googleNote" hidden data-en="Google sign-in has to be enabled in the Supabase dashboard first.">الدخول بـ Google يحتاج تفعيل من لوحة Supabase أول.</p>
+          <div class="or" data-en="or with email"><span></span>أو بالإيميل<span></span></div>
+        </div>
+
+        <form id="authForm" class="auth-form" novalidate>
+          <label id="nameRow" hidden data-en="Hunter name">اسم الصياد
+            <input id="aName" type="text" maxlength="18" autocomplete="nickname" placeholder="وش نناديك؟" data-en-ph="What should we call you?">
+          </label>
+          <label id="emailRow" data-en="Email">الإيميل
+            <input id="aEmail" type="email" dir="ltr" autocomplete="email" placeholder="name@example.com" required>
+          </label>
+          <label id="pwRow"><span id="pwLabel">كلمة المرور<span></span></span>
+            <span class="pw-wrap">
+              <input id="aPw" type="password" dir="ltr" autocomplete="current-password" minlength="8">
+              <button type="button" class="pw-eye" id="pwToggle" aria-label="إظهار كلمة المرور" data-en-aria="Show password" aria-pressed="false">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </span>
+            <span class="strength" id="pwStrength" data-score="0" hidden><i></i><i></i><i></i><i></i><b id="pwStrengthLbl"></b></span>
+          </label>
+          <p class="auth-err" id="authErr" role="alert" hidden></p>
+          <button type="button" class="link-btn small-link" id="forgotLink" data-en="Forgot your password?">نسيت كلمة المرور؟</button>
+          <button type="submit" class="main-btn auth-submit" id="authSubmit" data-en="Sign in">ادخل</button>
+          <button type="button" class="link-btn small-link" id="backToIn" hidden data-en="Back to sign in">رجوع لتسجيل الدخول</button>
+        </form>
+
+        <div class="guest-box" id="guestBox">
+          <button type="button" class="link-btn" id="guestBtn" data-en="Continue as a guest, no account">كمّل كضيف بدون حساب</button>
+          <p class="note" data-en="Your data stays in this browser only. You can register later and it moves with you.">بياناتك تبقى في هذا المتصفح بس، وتقدر تسجّل بعدين وتنتقل معك.</p>
+        </div>
+      </div>
+
+      <div class="auth-msg" id="authMsg" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="1"/><path d="m3 7 9 6 9-6"/></svg>
+        <h1 id="msgTitle"></h1>
+        <p id="msgBody"></p>
+        <span id="msgEmail" dir="ltr"></span>
+        <button type="button" class="main-btn" id="msgBack" data-en="Back to sign in">رجوع لتسجيل الدخول</button>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- ============ اليوم ============ -->
+<div class="view" id="view-today">
+  <section id="hero" aria-label="حالة الصياد" data-en-aria="Hunter status"></section>
+
+  <div class="stat-cards" id="statCards" aria-label="لمحة اليوم" data-en-aria="Today at a glance"></div>
+
+  <div class="layout">
+    <main class="col-main">
+      <section class="panel" id="tasksPanel" aria-labelledby="tasksTitle">
+        <div class="panel-head">
+          <h2 id="tasksTitle" data-en="Today's Quests">مهام اليوم</h2>
+          <span class="count" id="taskCount"></span>
+          <div class="head-actions">
+            <button class="ghost-btn" id="restBtn" aria-pressed="false" data-en="Take a rest day">خذ يوم راحة</button>
+            <button class="ghost-btn edit-btn" id="editBtn" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg><span id="editLabel" data-en="Edit quests">تعديل المهام</span></button>
+            <button class="ghost-btn brief-btn" id="briefBtn" aria-haspopup="dialog" data-en="Today's report"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>تقرير اليوم</button>
+          </div>
+        </div>
+
+        <form class="quick" id="quickForm" autocomplete="off">
+          <div class="seg" role="radiogroup" aria-label="تكرار المهمة" data-en-aria="Repeat">
+            <label><input type="radio" name="repeat" value="once" checked><span data-en="One time">مرة وحدة</span></label>
+            <label><input type="radio" name="repeat" value="daily"><span data-en="Every day">كل يوم</span></label>
+          </div>
+          <label for="quickInput" class="sr" data-en="Add a quest in one line (shortcut: /)">إضافة مهمة بسطر واحد (اختصار: /)</label>
+          <span class="quick-field">
+            <input id="quickInput" type="text" maxlength="200" placeholder="مثال: مذاكرة الشبكات الساعة 9 مساءً !B #ذكاء" data-en-ph="e.g. Study networks at 9pm !B #intellect" aria-keyshortcuts="/">
+            <kbd class="slash-key" aria-hidden="true" title="اضغط / من أي مكان" data-en-title="Press / from anywhere">/</kbd>
+          </span>
+          <button type="submit" class="main-btn" data-en="Add">أضف</button>
+          <p class="quick-hint" id="quickHint" data-en="Pick &quot;Every day&quot; for a quest that repeats; it's added once. You can also type &quot;tomorrow&quot; or &quot;day 12&quot; for another date, !A for the rank, and #intellect for the ability.">«كل يوم» للمهمة اللي تتكرر، وتنضاف مرة وحدة بس. وتقدر تكتب «بكرة» أو «يوم 12» لموعد آخر، و!A للرتبة، و#ذكاء للقدرة.</p>
+        </form>
+
+        <div id="taskList"></div>
+        <div id="upcoming"></div>
+        <p class="bonus-line" id="bonusLine"></p>
+      </section>
+
+      <section class="panel" id="heatPanel" aria-labelledby="heatTitle">
+        <div class="heat-main">
+          <h2 id="heatTitle" data-en="Last 12 weeks">آخر 12 أسبوعاً</h2>
+          <div class="heat" id="heat" role="img"></div>
+          <p class="note" id="heatNote" data-en="Starts from your first day, top left. Each row is a week starting on Friday, and the stronger the cell, the more you completed.">يبدأ من أول يوم لك، فوق يمين. كل صف أسبوع يبدأ بالجمعة، وكلما كانت الخانة أقوى أنجزت أكثر.</p>
+        </div>
+        <dl class="heat-stats" id="heatStats"></dl>
+      </section>
+    </main>
+
+    <aside class="col-side">
+      <section class="panel" id="focusPanel" aria-labelledby="focusTitle">
+        <h2 id="focusTitle" data-en="Focus Gate">بوابة التركيز</h2>
+        <div class="ring-wrap">
+          <svg class="ring" viewBox="0 0 240 240" aria-hidden="true">
+            <circle class="ring-bg" cx="120" cy="120" r="108"/>
+            <circle class="ring-fg" id="timerRing" cx="120" cy="120" r="108" pathLength="1000" transform="rotate(-90 120 120)"/>
+          </svg>
+          <div class="ring-center">
+            <p class="phase" id="timerPhase" aria-live="polite"></p>
+            <div class="timer" id="timerDisplay" role="timer">25:00</div>
+            <span class="ring-sub" id="timerSub"></span>
+          </div>
+        </div>
+        <div class="steps" id="timerSteps" hidden></div>
+        <div class="timer-opts">
+          <label data-en="Duration">المدة
+            <select id="timerMinutes">
+              <option value="15" data-en="15 min">15 دقيقة</option>
+              <option value="25" selected data-en="25 min">25 دقيقة</option>
+              <option value="45" data-en="45 min">45 دقيقة</option>
+              <option value="60" data-en="1 hr (Pomodoro)">ساعة (بومودورو)</option>
+              <option value="120" data-en="2 hrs">ساعتين</option>
+              <option value="180" data-en="3 hrs">3 ساعات</option>
+              <option value="240" data-en="4 hrs">4 ساعات</option>
+            </select>
+          </label>
+          <label data-en="Which quest?">على أي مهمة؟
+            <select id="timerLink"></select>
+          </label>
+        </div>
+        <label class="check" data-en="Complete the quest automatically when the session ends"><input type="checkbox" id="timerAuto" checked> أنجز المهمة تلقائياً لما تخلص الجلسة</label>
+        <div class="row-btns">
+          <button class="main-btn" id="timerStart" data-en="Enter the gate">ادخل البوابة</button>
+          <button class="ghost-btn" id="timerReset" data-en="Reset">إعادة</button>
+        </div>
+      </section>
+
+      <section class="panel" id="achMini" aria-labelledby="achMiniTitle">
+        <div class="panel-head">
+          <h2 id="achMiniTitle" data-en="Achievements &amp; Titles">إنجازاتك وألقابك</h2>
+          <button class="ghost-btn small" data-goto="ach" data-en="Manage">إدارة</button>
+        </div>
+        <div id="achMiniList"></div>
+        <p class="note" data-en="Every achievement you unlock becomes a title. The title you pick shows next to your name at the top.">كل إنجاز تفتحه يصير لقب. اللقب اللي تختاره يظهر جنب اسمك فوق.</p>
+      </section>
+
+    </aside>
+  </div>
+</div>
+
+<!-- ============ التحليلات ============ -->
+<div class="view" id="view-stats" hidden>
+  <div class="page">
+    <h1 class="page-title" data-en="Analytics">التحليلات</h1>
+    <div class="numbers" id="numbers"></div>
+    <div class="charts">
+      <section class="panel" aria-labelledby="xpChartTitle">
+        <h2 id="xpChartTitle" data-en="XP over the last 30 days">الخبرة في آخر 30 يوماً</h2>
+        <div id="xpChart" class="chart"></div>
+      </section>
+      <section class="panel" aria-labelledby="radarTitle">
+        <h2 id="radarTitle" data-en="Your abilities">قدراتك</h2>
+        <div id="radar" class="chart"></div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<!-- ============ الإنجازات ============ -->
+<div class="view" id="view-ach" hidden>
+  <div class="page narrow">
+    <h1 class="page-title" data-en="Your Achievements">إنجازاتك</h1>
+    <p class="lead" data-en="Set your goals as streak days. When you reach one it unlocks for good, and becomes a title you can put next to your name.">حدد أهدافك بعدد أيام السلسلة. لما توصل لها تنفتح لك وتبقى مفتوحة، وتصير لقب تقدر تحطه جنب اسمك.</p>
+    <section class="panel">
+      <ul class="ach-list" id="achList"></ul>
+      <form class="ach-form" id="achForm" autocomplete="off">
+        <label data-en="Achievement name">اسم الإنجاز <input id="achName" type="text" maxlength="30" required placeholder="مثال: صياد لا يتوقف" data-en-ph="e.g. The Unstoppable Hunter"></label>
+        <label data-en="Number of days">عدد الأيام <input id="achDays" type="number" min="1" max="3650" required placeholder="120"></label>
+        <button type="submit" class="main-btn" data-en="Add achievement">أضف الإنجاز</button>
+      </form>
+    </section>
+  </div>
+</div>
+
+<!-- ============ نوافذ ============ -->
+<dialog id="editDialog" class="panel dlg">
+  <form method="dialog" id="editForm">
+    <h2 id="editTitle" data-en="Edit quest">تعديل المهمة</h2>
+    <label data-en="Quest name">اسم المهمة <input id="eTitle" type="text" maxlength="120" required></label>
+    <div class="two">
+      <label data-en="Time">الوقت <input id="eTime" type="time" required></label>
+      <label data-en="Ability">القدرة
+        <select id="eStat">
+          <option value="STR" data-en="Strength">قوة</option><option value="VIT" data-en="Vitality">حيوية</option>
+          <option value="AGI" data-en="Agility">رشاقة</option><option value="INT" data-en="Intellect">ذكاء</option>
+          <option value="SENSE" data-en="Discipline">انضباط</option>
+        </select>
+      </label>
+    </div>
+    <fieldset id="eDaysBox">
+      <legend data-en="Repeat on">أيام التكرار</legend>
+      <div class="days" id="eDays"></div>
+    </fieldset>
+    <div class="two" id="eGateBox">
+      <label data-en="Date">التاريخ <input id="eDate" type="date"></label>
+      <label data-en="Rank">الرتبة
+        <select id="eRank">
+          <option value="E">E</option><option value="D">D</option><option value="C">C</option>
+          <option value="B">B</option><option value="A">A</option><option value="S">S</option>
+        </select>
+      </label>
+    </div>
+    <div class="row-btns">
+      <button class="main-btn" value="save" data-en="Save">حفظ</button>
+      <button class="ghost-btn" value="cancel" formnovalidate data-en="Cancel">إلغاء</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="confirmDialog" class="panel dlg">
+  <form method="dialog">
+    <p id="confirmText"></p>
+    <div class="row-btns">
+      <button class="main-btn" value="ok" id="confirmOk" data-en="Confirm">تأكيد</button>
+      <button class="ghost-btn" value="cancel" data-en="Cancel">إلغاء</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="tgDialog" class="panel dlg wide" aria-labelledby="tgTitle">
+  <form method="dialog">
+    <h2 id="tgTitle" data-en="Connect the Telegram bot">ربط بوت تيليجرام</h2>
+    <p class="muted" data-en="Send the bot a quest from Telegram in one line, and it replies with a link. Open the link and the quest is added here once you approve.">ترسل للبوت مهمة من تيليجرام بسطر واحد، فيرد عليك برابط. تضغط الرابط وتنضاف المهمة هنا بعد ما توافق.</p>
+    <ol class="tg-steps">
+      <li data-en-html="In Telegram open &lt;b&gt;@BotFather&lt;/b&gt;, send &lt;code&gt;/newbot&lt;/code&gt; and pick a name for the bot. It gives you a &lt;b&gt;token&lt;/b&gt;, copy it.">في تيليجرام افتح <b>@BotFather</b> وأرسل <code>/newbot</code>، واختر اسم للبوت. بيعطيك <b>توكن</b>، انسخه.</li>
+      <li data-en-html="In the &lt;code&gt;bot&lt;/code&gt; folder copy &lt;code&gt;.env.example&lt;/code&gt;, name the copy &lt;code&gt;.env&lt;/code&gt;, and put the token after &lt;code&gt;TELEGRAM_BOT_TOKEN=&lt;/code&gt;">في مجلد <code>bot</code> انسخ ملف <code>.env.example</code> وسمِّ النسخة <code>.env</code>، وحط التوكن بعد <code>TELEGRAM_BOT_TOKEN=</code></li>
+      <li><span data-en-html="Make sure the link after &lt;code&gt;SITE_URL=&lt;/code&gt; is this site's link:">تأكد إن الرابط بعد <code>SITE_URL=</code> هو رابط موقعك هذا:</span>
+        <span class="copy-row"><code id="tgUrl" dir="ltr"></code><button type="button" class="mini" id="tgCopy" data-en="Copy">نسخ</button></span></li>
+      <li data-en-html="Open a Terminal in VS Code inside the &lt;code&gt;bot&lt;/code&gt; folder and run: &lt;code dir=&quot;ltr&quot;&gt;uv run bot.py&lt;/code&gt;">افتح Terminal في VS Code داخل مجلد <code>bot</code> وشغّل: <code dir="ltr">uv run bot.py</code></li>
+      <li data-en-html="Send &lt;code&gt;/start&lt;/code&gt; to the bot. It gives you your ID; put it after &lt;code&gt;ALLOWED_USER_ID=&lt;/code&gt; so it only answers you, then restart the bot.">أرسل <code>/start</code> للبوت. بيعطيك رقمك، حطه بعد <code>ALLOWED_USER_ID=</code> عشان يرد عليك أنت بس، وأعد تشغيل البوت.</li>
+    </ol>
+    <p class="note" data-en="The bot runs as long as the Terminal is open. The local link only opens on your computer; to open it from your phone, host the site somewhere like GitHub Pages.">البوت يشتغل ما دام الـ Terminal مفتوح. والرابط المحلي يفتح على كمبيوترك بس، وعشان يفتح من الجوال لازم ترفع الموقع على استضافة مثل GitHub Pages.</p>
+    <h3 class="tg-try-title" data-en="Try the link without the bot">جرّب الرابط بدون البوت</h3>
+    <div class="quick">
+      <label for="tgTest" class="sr" data-en="Quest text to try">نص المهمة للتجربة</label>
+      <input id="tgTest" type="text" maxlength="200" value="مهمة: قراءة 10 صفحات الساعة 9 مساءً" data-en-val="task: read 10 pages at 9pm">
+      <button type="button" class="main-btn" id="tgTry" data-en="Try it">جرّب</button>
+    </div>
+    <div class="row-btns"><button class="ghost-btn" value="close" data-en="Close">إغلاق</button></div>
+  </form>
+</dialog>
+
+<dialog id="briefDialog" class="panel dlg brief" aria-labelledby="briefTitle">
+  <form method="dialog">
+    <div class="brief-head">
+      <div class="sys-badge" aria-hidden="true"><span class="sys-mark">!</span><span id="briefKicker" data-en="System Report">تقرير النظام</span></div>
+      <h2 id="briefTitle"></h2>
+      <p class="brief-date" id="briefDate"></p>
+    </div>
+    <div id="briefBody"></div>
+    <div class="row-btns">
+      <button class="main-btn" value="close" id="briefCta"></button>
+      <button type="button" class="ghost-btn speak-btn" id="briefSpeak" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg><span id="briefSpeakLbl" data-en="Listen to the report">اسمع التقرير</span></button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="chooseDialog" class="panel dlg">
+  <form method="dialog">
+    <h2 data-en="Which data do we keep?">أي بيانات نبقي؟</h2>
+    <p id="chooseText"></p>
+    <div class="row-btns">
+      <button class="main-btn" value="a" id="chooseA"></button>
+      <button class="ghost-btn" value="b" id="chooseB"></button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="nameDialog" class="panel dlg">
+  <form method="dialog">
+    <h2 data-en="Hunter name">اسم الصياد</h2>
+    <p class="muted" id="nameNote" hidden data-en="Welcome to the System. What should we call you? You can change it later with the pen next to your name.">أهلاً بك في النظام. وش نناديك؟ تقدر تغيّره بعدين من القلم اللي جنب اسمك.</p>
+    <label for="nameInput" data-en="Your name">اسمك</label>
+    <input id="nameInput" type="text" maxlength="18" placeholder="مثال: أحمد" data-en-ph="e.g. Ahmed" autocomplete="nickname">
+    <div class="row-btns">
+      <button class="main-btn" value="save" data-en="Save">حفظ</button>
+      <button class="ghost-btn" value="cancel" data-en="Cancel">إلغاء</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="i18n.js"></script>
+<script src="vendor/supabase.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script src="cloud.js"></script>
+</body>
+</html>
