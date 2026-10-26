@@ -54,6 +54,12 @@ const RANK_XP = { E: 25, D: 45, C: 75, B: 120, A: 200, S: 350 };
 const DAY_BONUS_XP = 150;
 const MIT_XP = 50; // مكافأة مهمة اليوم الأهم
 const GRACE_DAYS = 3; // السلسلة تنكسر في رابع يوم فائت متتالي
+const DAILY_XP = 30; // خبرة المهمة اليومية الجديدة (الإضافة السريعة والقيمة الافتراضية)
+// خبرة كل دقيقة تركيز. دقائق التركيز في الإحصائيات تنحسب منها (focusMinutes)،
+// فلو تغيّرت، الدقائق المسجلة قبل التغيير تنحسب غلط.
+const FOCUS_XP_PER_MIN = 3;
+// خيارات مدة المؤقت بالدقائق (نفسها في قائمة timerMinutes داخل index.html)
+const TIMER_OPTS = [15, 25, 45, 60, 120, 180, 240];
 const WEEKDAYS = EN ? ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] : ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
 const WEEKDAYS_SHORT = EN ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] : ['أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
 // أيام الأسبوع من الجمعة (للسجل وتقرير الجمعة)
@@ -139,7 +145,7 @@ function normalize(raw) {
   if (Array.isArray(raw.fixed)) {
     s.fixed = raw.fixed.filter((q) => q && q.id && q.title).slice(0, 100).map((q) => ({
       id: String(q.id).slice(0, 40), title: String(q.title).slice(0, 120),
-      stat: STATS.includes(q.stat) ? q.stat : 'SENSE', xp: clampNum(q.xp, 1, 1000, 30),
+      stat: STATS.includes(q.stat) ? q.stat : 'SENSE', xp: clampNum(q.xp, 1, 1000, DAILY_XP),
       time: isTime(q.time) ? q.time : '09:00', days: normDays(q.days)
     }));
   }
@@ -181,7 +187,7 @@ function normalize(raw) {
   }
   if (raw.timer && typeof raw.timer === 'object') {
     const t = raw.timer;
-    s.timer.minutes = [15, 25, 45, 60, 120, 180, 240].includes(Number(t.minutes)) ? Number(t.minutes) : 25;
+    s.timer.minutes = TIMER_OPTS.includes(Number(t.minutes)) ? Number(t.minutes) : 25;
     s.timer.phase = Math.round(clampNum(t.phase, 0, 6, 0));
     s.timer.status = ['idle', 'running', 'paused'].includes(t.status) ? t.status : 'idle';
     s.timer.endAt = clampNum(t.endAt, 0, 1e14, 0);
@@ -250,7 +256,7 @@ function migrateOld(o) {
   if (Array.isArray(o.fixedQuests) && o.fixedQuests.length) {
     s.fixed = o.fixedQuests.filter((q) => q && q.id && q.title).map((q) => ({
       id: String(q.id), title: String(q.title).slice(0, 120), stat: STATS.includes(q.stat) ? q.stat : 'SENSE',
-      xp: clampNum(q.xp, 1, 1000, 30), time: isTime(q.time) ? q.time : '09:00', days: normDays(q.days)
+      xp: clampNum(q.xp, 1, 1000, DAILY_XP), time: isTime(q.time) ? q.time : '09:00', days: normDays(q.days)
     }));
   }
   if (Array.isArray(o.customQuests)) {
@@ -320,6 +326,14 @@ function revoke(key) {
   if (r.stat) state.stats[r.stat] = Math.max(0, (state.stats[r.stat] || 0) - 1);
   delete state.rewards[key];
   return true;
+}
+
+// دقائق التركيز من يوم from إلى يوم to (بدون to = يوم واحد)، من مكافآت التركيز المسجلة
+function focusMinutes(from, to) {
+  const end = to || from;
+  return Object.entries(state.rewards)
+    .filter(([k, r]) => k.startsWith('focus:') && r.date >= from && r.date <= end)
+    .reduce((a, [, r]) => a + r.xp / FOCUS_XP_PER_MIN, 0);
 }
 
 function rankFor(level, streak) {
@@ -554,7 +568,7 @@ function parseQuick(raw) {
   out.title = s.replace(/\s+/g, ' ').replace(/^[\s،,.:؛-]+|[\s،,.:؛-]+$/g, '').trim().slice(0, 120);
   if (!out.title) return null;
   if (!out.time) out.time = out.kind === 'fixed' ? '09:00' : '17:00';
-  out.xp = out.kind === 'fixed' ? 30 : RANK_XP[out.rank];
+  out.xp = out.kind === 'fixed' ? DAILY_XP : RANK_XP[out.rank];
   return out;
 }
 
@@ -569,13 +583,13 @@ function readQuick() {
   const p = parseQuick($('quickInput').value);
   if (!p) return null;
   const daily = document.querySelector('input[name="repeat"]:checked').value === 'daily';
-  if (daily && p.kind !== 'fixed') { p.kind = 'fixed'; p.xp = 30; }
+  if (daily && p.kind !== 'fixed') { p.kind = 'fixed'; p.xp = DAILY_XP; }
   return p;
 }
 
 function addParsed(p) {
   const id = uid(p.kind === 'fixed' ? 'f_' : 'g_');
-  if (p.kind === 'fixed') state.fixed.push({ id, title: p.title, stat: p.stat, xp: 30, time: p.time, days: [] });
+  if (p.kind === 'fixed') state.fixed.push({ id, title: p.title, stat: p.stat, xp: DAILY_XP, time: p.time, days: [] });
   else state.gates.push({ id, title: p.title, date: p.date, rank: p.rank, xp: p.xp, time: p.time, stat: p.stat, done: false, subs: [] });
   if (p.kind === 'fixed') syncDay(todayIso());
   toast(p.kind === 'fixed' ? L('أضيفت مهمة يومية', 'Daily quest added') : L('فُتحت بوابة جديدة', 'A new gate opened'), p.title, '', undoAdd(p.kind, id));
@@ -599,7 +613,6 @@ async function importFromHash() {
 // الجلسة مقسومة لمراحل: شغل وراحة.
 // ساعة = بومودورو (25 شغل، 5 راحة، مرتين). ساعتين فأكثر = ساعة شغل ثم 12 دقيقة راحة، والراحة تنضاف على الوقت.
 let timerTick = null;
-const TIMER_OPTS = [15, 25, 45, 60, 120, 180, 240];
 function timerPlan(min) {
   if (min === 60) return [{ type: 'work', min: 25 }, { type: 'break', min: 5 }, { type: 'work', min: 25 }, { type: 'break', min: 5 }];
   if (min >= 120) {
@@ -642,11 +655,11 @@ function phaseDone() {
   if (ph.type === 'work') {
     // كل مقطع شغل يُحسب لحاله، فلو وقفت بالنص ما يضيع اللي خلصته
     state.focus.minutes += ph.min;
-    grant('focus:' + t.endAt + ':' + t.phase, ph.min * 3, 'SENSE');
+    grant('focus:' + t.endAt + ':' + t.phase, ph.min * FOCUS_XP_PER_MIN, 'SENSE');
     if (t.phase === lastWork) {
       state.focus.sessions += 1;
       const workMin = plan.filter((p) => p.type === 'work').reduce((a, p) => a + p.min, 0);
-      toast(L('أُغلقت بوابة التركيز', 'Focus gate closed'), '+' + workMin * 3 + ' XP' + L('، ' + workMin + ' دقيقة شغل', ', ' + workMin + ' min of work'), 'gold');
+      toast(L('أُغلقت بوابة التركيز', 'Focus gate closed'), '+' + workMin * FOCUS_XP_PER_MIN + ' XP' + L('، ' + workMin + ' دقيقة شغل', ', ' + workMin + ' min of work'), 'gold');
       sound('level');
       completeLinked = t.auto && Boolean(t.link);
     } else {
@@ -1487,7 +1500,7 @@ function renderStatCards(si) {
   const doneN = all.filter((t) => t.done).length;
   const t = todayIso();
   const nt = nextTask();
-  const focusMin = Object.entries(state.rewards).filter(([k, r]) => k.startsWith('focus:') && r.date === t).reduce((a, [, r]) => a + r.xp / 3, 0);
+  const focusMin = focusMinutes(t);
   const cards = [
     { go: 'cp', label: L('القوة القتالية (CP)', 'Combat Power (CP)'), value: combatPower(si).toLocaleString('en'), sub: L('مجموع قدراتك ومستواك وسلسلتك', 'Your abilities, level and streak combined'), hint: L('يفتح رادار القدرات', 'Opens the ability radar') },
     { go: 'tasks', label: L('إنجاز مهام اليوم', "Today's progress"), value: (all.length ? Math.round(doneN / all.length * 100) : 0) + '%', sub: all.length ? L('أنجزت ' + doneN + ' من ' + all.length + (all.length > 2 && all.length < 11 ? ' مهام' : ' مهمة'), doneN + ' of ' + all.length + ' quests done') : L('ما عندك مهام اليوم', 'No quests today'), hint: L('ينزلك للمهام', 'Jumps to your quests') },
@@ -1582,7 +1595,7 @@ function briefData(kind) {
       const full = counted.filter((d) => doneSet.has(d)).length;
       const xp = range.reduce((a, d) => a + (state.xpByDate[d] || 0), 0);
       const prev = Array.from({ length: 7 }, (_, i) => addDays(ws, i - 7)).reduce((a, d) => a + (state.xpByDate[d] || 0), 0);
-      const focusMin = Object.entries(state.rewards).filter(([k, r]) => k.startsWith('focus:') && r.date >= ws && r.date <= we).reduce((a, [, r]) => a + r.xp / 3, 0);
+      const focusMin = focusMinutes(ws, we);
       let best = null;
       range.forEach((d) => { const r = dayRatio(d); if (r >= 0 && (!best || r > best.r || (r === best.r && (state.xpByDate[d] || 0) > best.xp))) best = { d, r, xp: state.xpByDate[d] || 0 }; });
       lead(EN
@@ -1789,7 +1802,7 @@ function renderHeatDay() {
   const app = fixedFor(heatSel);
   const done = doneIds(heatSel).filter((id) => app.some((q) => q.id === id)).length;
   const gates = state.gates.filter((g) => g.date === heatSel);
-  const focus = Object.entries(state.rewards).filter(([k, r]) => k.startsWith('focus:') && r.date === heatSel).reduce((a, [, r]) => a + r.xp / 3, 0);
+  const focus = focusMinutes(heatSel);
   const xp = state.xpByDate[heatSel] || 0;
   const parts = [];
   if (app.length) parts.push(L('اليومية ', 'Daily ') + done + L(' من ', ' of ') + app.length);
@@ -1899,7 +1912,7 @@ function renderWeek() {
   const counted = (rg) => rg.filter((d) => d >= state.startDate && !isRest(d) && !isOff(d));
   const fullOf = (rg) => counted(rg).filter((d) => doneSet.has(d)).length;
   const xpOf = (rg) => rg.reduce((a, d) => a + (state.xpByDate[d] || 0), 0);
-  const focusOn = (d) => Object.entries(state.rewards).filter(([k, r]) => k.startsWith('focus:') && r.date === d).reduce((a, [, r]) => a + r.xp / 3, 0);
+  const focusOn = (d) => focusMinutes(d);
   const mins = range.map(focusOn);
   const focusTot = mins.reduce((a, b) => a + b, 0);
   const prevFocus = prevRange.map(focusOn).reduce((a, b) => a + b, 0);
