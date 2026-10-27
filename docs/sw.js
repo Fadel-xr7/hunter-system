@@ -1,7 +1,7 @@
 // يخلي النظام يشتغل بدون إنترنت. الشبكة أولاً، فأي تعديل يظهر مباشرة،
 // والنسخة المخزنة تُستخدم بس لما ينقطع النت.
-const CACHE = 'hunter-v10';
-const ASSETS = ['./', './index.html', './css/style.css', './js/boot.js', './js/i18n.js', './js/config.js', './js/app.js', './js/cloud.js', './vendor/supabase.js', './manifest.webmanifest', './assets/icon-192.png', './assets/icon-512.png', './assets/hunter-avatar.webp', './assets/dungeon-gate.webp'];
+const CACHE = 'hunter-v11';
+const ASSETS = ['./', './index.html', './css/style.css', './js/boot.js', './js/i18n.js', './js/config.js', './js/app.js', './js/cloud.js', './vendor/supabase.js', './manifest.webmanifest', './assets/icon-192.png', './assets/icon-512.png', './assets/icon-maskable-192.png', './assets/icon-maskable-512.png', './assets/apple-touch-icon.png', './assets/favicon.svg', './assets/favicon-32.png', './assets/hunter-avatar.webp', './assets/dungeon-gate.webp'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));

@@ -1217,7 +1217,7 @@ function renderHeat() {
     if (iso > today) { box.append(el('span', { class: 'cell future', title: iso }, el('i'))); continue; }
     if (iso < state.startDate) { box.append(el('span', { class: 'cell before', title: iso + L('، قبل ما تبدأ', ', before you started') }, el('i'))); continue; }
     const pick = () => { heatSel = iso; renderHeat(); };
-    const r = iso < state.startDate && !state.completedDates.includes(iso) ? -1 : dayRatio(iso);
+    const r = dayRatio(iso);
     const lvl = isRest(iso) ? 'rest' : r < 0 ? 'l0' : r === 0 ? 'l0' : r < 0.5 ? 'l1' : r < 1 ? 'l2' : 'l3';
     if (r > 0) active++;
     total++;
@@ -1893,14 +1893,15 @@ function placeOrbit(id, frac) {
 // معاينة الإضافة: شرائح تبيّن وش فهم النظام وأنت تكتب
 function quickChips(p) {
   const chip = (txt, cls, ltrTxt) => el('span', { class: 'qchip ' + (cls || ''), dir: ltrTxt ? 'ltr' : null, text: txt });
-  $('quickHint').replaceChildren(
+  // replaceChildren يحوّل null لنص «null»، فنشيل الفارغ قبل
+  $('quickHint').replaceChildren(...[
     el('span', { class: 'qlabel', text: L('النظام فهم:', 'The System read:') }),
     chip(p.kind === 'fixed' ? L('مهمة يومية', 'Daily quest') : L('بوابة ', 'Gate ') + p.rank, p.kind === 'fixed' ? 'q-daily' : 'q-gate'),
     chip('«' + p.title + '»', 'q-title'),
     p.kind === 'gate' ? chip(p.dateLabel, 'q-date') : null,
     chip(fmt12(p.time), 'q-time'),
     chip('#' + STAT_AR[p.stat], 'q-stat s-' + p.stat),
-    chip('+' + p.xp + ' XP', 'q-xp', true));
+    chip('+' + p.xp + ' XP', 'q-xp', true)].filter(Boolean));
 }
 
 // الأسبوع اللي فات (الجمعة إلى الخميس)
