@@ -923,6 +923,7 @@ function renderHero(si) {
   const streakLbl = si.streak === 1 ? L('يوم متتالي', 'day in a row') : L('يوماً متتالياً', 'days in a row');
 
   hero.className = anime ? 'hero-anime' : 'hero-ink';
+  renderMe();
   if (anime) {
     // نافذة [الحالة]: السلسلة وأيام السماح والقدرات
     const maxStat = Math.max(30, ...STATS.map((k) => state.stats[k] || 0));
@@ -1029,6 +1030,7 @@ function taskRow(t) {
       t.late ? el('span', { class: 'late', text: L('متأخرة', 'Overdue') }) : null,
       el('span', { class: 'lead', 'aria-hidden': 'true' }),
       timeNode(t.time, 'time'),
+      el('span', { class: 'xpv', dir: 'ltr', 'aria-hidden': 'true', text: '+' + t.xp }),
       el('span', { class: 'ctr', dir: 'ltr', text: '[' + (t.done ? 1 : 0) + '/1]' })].filter(Boolean));
   } else {
     btn.append(
@@ -1066,7 +1068,13 @@ function renderTasks() {
   const all = fixed.concat(gates);
   const doneN = all.filter((t) => t.done).length;
   const t = todayIso();
-  $('taskCount').textContent = all.length ? L('أنجزت ' + doneN + ' من ' + all.length, doneN + ' of ' + all.length + ' done') : '';
+  if (theme() === 'anime') {
+    const d = dateOf(t);
+    const day = WEEKDAYS[d.getDay()] + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()];
+    $('taskCount').replaceChildren(day, all.length ? ' · ' + L('أنجزت ', '') : '', all.length ? el('b', { dir: 'ltr', text: doneN + '/' + all.length }) : '', all.length ? L('', ' done') : '');
+  } else {
+    $('taskCount').textContent = all.length ? L('أنجزت ' + doneN + ' من ' + all.length, doneN + ' of ' + all.length + ' done') : '';
+  }
   $('restBtn').setAttribute('aria-pressed', String(isRest(t)));
   $('restBtn').textContent = isRest(t) ? L('إلغاء يوم الراحة', 'Cancel rest day') : L('خذ يوم راحة', 'Take a rest day');
   $('editBtn').setAttribute('aria-pressed', String(editing));
@@ -1079,7 +1087,7 @@ function renderTasks() {
   } else if (!all.length) {
     list.append(el('p', { class: 'empty', text: L('ما عندك مهام اليوم. اكتب أول مهمة فوق، وأضف «يومي» لو تبيها تتكرر.', 'No quests today. Type your first one above, and add "daily" if it repeats.') }));
   } else if (theme() === 'anime') {
-    if (fixed.length) list.append(el('h3', { class: 'grp', text: L('كل يوم', 'Daily') }), el('ul', { class: 'tasks' }, fixed.sort(byTime).map(taskRow)));
+    if (fixed.length) list.append(el('div', { class: 'grp-row' }, el('h3', { class: 'grp', text: L('كل يوم', 'Daily') }), el('span', { class: 'grp-hint', text: L('النجمة = الأهم اليوم (+' + MIT_XP + ' XP)', 'Star = top quest today (+' + MIT_XP + ' XP)') })), el('ul', { class: 'tasks' }, fixed.sort(byTime).map(taskRow)));
     if (gates.length) list.append(el('h3', { class: 'grp gates', text: L('بوابات اليوم', "Today's gates") }), el('ul', { class: 'tasks' }, gates.sort(byTime).map(taskRow)));
   } else {
     const n = new Date();
@@ -1130,7 +1138,7 @@ function renderTimer() {
   $('timerSub').textContent = plan.length < 2 ? ph.min + L(' دقيقة', ' min') : ph.type === 'break' ? L('راحة ' + ph.min + ' د، بعدها نرجع للشغل', ph.min + '-min break, then back to work') : L('مقطع ' + workNo + ' من ' + works, 'Block ' + workNo + ' of ' + works);
   $('focusPanel').classList.toggle('on-break', ph.type === 'break' && state.timer.status !== 'idle');
   const steps = $('timerSteps');
-  steps.hidden = plan.length < 2;
+  steps.hidden = plan.length < 2 && theme() !== 'anime';
   steps.replaceChildren(...plan.map((p, i) => el('span', {
     class: 'step ' + p.type + (i < state.timer.phase ? ' done' : i === state.timer.phase && state.timer.status !== 'idle' ? ' cur' : ''),
     style: 'flex-grow:' + p.min, title: (p.type === 'work' ? L('شغل ', 'Work ') : L('راحة ', 'Break ')) + p.min + L(' دقيقة', ' min')
@@ -1144,6 +1152,7 @@ function renderTimer() {
   renderImmersive(left, total, ph, plan);
   $('timerMinutes').value = String(state.timer.minutes);
   $('timerMinutes').disabled = state.timer.status !== 'idle';
+  renderDurChips();
   $('timerAuto').checked = state.timer.auto;
   if (state.timer.status === 'running') document.title = pad(Math.floor(left / 60)) + ':' + pad(left % 60) + ' | ' + APP_NAME;
   else document.title = APP_NAME;
@@ -1212,7 +1221,9 @@ function renderHeat() {
   $('heatTitle').textContent = fromStart ? L('سجلّك من أول يوم', 'Your record since day one') : L('آخر 12 أسبوعاً', 'Last 12 weeks');
   WD_FROM_FRI.forEach((d) => box.append(el('span', { class: 'wd', 'aria-hidden': 'true', text: d })));
   let total = 0, active = 0;
-  for (let i = 0; i < 84; i++) {
+  // الأنمي: نعرض الأسابيع لين هذا الأسبوع بس (بدون صفوف المستقبل الفاضية)
+  const weeks = theme() === 'anime' ? Math.min(12, Math.round((dateOf(thisWeek) - dateOf(start)) / 864e5 / 7) + 1) : 12;
+  for (let i = 0; i < weeks * 7; i++) {
     const iso = addDays(start, i);
     if (iso > today) { box.append(el('span', { class: 'cell future', title: iso }, el('i'))); continue; }
     if (iso < state.startDate) { box.append(el('span', { class: 'cell before', title: iso + L('، قبل ما تبدأ', ', before you started') }, el('i'))); continue; }
@@ -1422,6 +1433,8 @@ function bind() {
   bindExtras();
   bindMore();
   bindLook();
+  bindMe();
+  bindTopbar();
   window.addEventListener('hashchange', importFromHash);
   window.addEventListener('storage', (e) => { if (e.key === KEY && e.newValue) { try { state = normalize(JSON.parse(e.newValue)); render(); runTimer(); } catch (err) { /* تجاهل */ } } });
 }
@@ -1796,24 +1809,26 @@ function dayLabel(iso) {
 function renderHeatDay() {
   const box = $('heatDay');
   if (!box) return;
-  if (!heatSel) { box.replaceChildren(el('span', { class: 'hd-hint', text: L('اضغط أي يوم في السجل وتطلع لك تفاصيله.', 'Tap any day in the record to see its details.') })); return; }
-  const d = dateOf(heatSel);
-  const st = dayStatus(heatSel);
-  const app = fixedFor(heatSel);
-  const done = doneIds(heatSel).filter((id) => app.some((q) => q.id === id)).length;
-  const gates = state.gates.filter((g) => g.date === heatSel);
-  const focus = focusMinutes(heatSel);
-  const xp = state.xpByDate[heatSel] || 0;
+  // الأنمي: لو ما اخترت يوم، تطلع تفاصيل اليوم على طول
+  const sel = heatSel || (theme() === 'anime' ? todayIso() : '');
+  if (!sel) { box.replaceChildren(el('span', { class: 'hd-hint', text: L('اضغط أي يوم في السجل وتطلع لك تفاصيله.', 'Tap any day in the record to see its details.') })); return; }
+  const d = dateOf(sel);
+  const st = dayStatus(sel);
+  const app = fixedFor(sel);
+  const done = doneIds(sel).filter((id) => app.some((q) => q.id === id)).length;
+  const gates = state.gates.filter((g) => g.date === sel);
+  const focus = focusMinutes(sel);
+  const xp = state.xpByDate[sel] || 0;
   const parts = [];
   if (app.length) parts.push(L('اليومية ', 'Daily ') + done + L(' من ', ' of ') + app.length);
   if (gates.length) parts.push(L('البوابات ', 'Gates ') + gates.filter((g) => g.done).length + L(' من ', ' of ') + gates.length);
   if (focus) parts.push(L('تركيز ', 'Focus ') + Math.round(focus) + L(' د', ' min'));
-  box.replaceChildren(
-    el('b', { class: 'hd-date', text: WEEKDAYS[d.getDay()] + L('، ', ', ') + d.getDate() + ' ' + MONTHS[d.getMonth()] + (heatSel === todayIso() ? L(' (اليوم)', ' (today)') : '') }),
+  box.replaceChildren(...[
+    el('b', { class: 'hd-date', text: WEEKDAYS[d.getDay()] + L('، ', ', ') + d.getDate() + ' ' + MONTHS[d.getMonth()] + (sel === todayIso() ? L(' (اليوم)', ' (today)') : '') }),
     el('span', { class: 'hd-st hd-' + st.k, text: st.t }),
     ...parts.map((x) => el('span', { class: 'hd-info', text: x })),
     el('span', { class: 'hd-xp', dir: 'ltr', text: '+' + xp + ' XP' }),
-    el('button', { type: 'button', class: 'mini hd-close', onclick: () => { heatSel = ''; renderHeat(); }, 'aria-label': L('إخفاء التفاصيل', 'Hide details'), text: '×' }));
+    heatSel ? el('button', { type: 'button', class: 'mini hd-close', onclick: () => { heatSel = ''; renderHeat(); }, 'aria-label': L('إخفاء التفاصيل', 'Hide details'), text: '×' }) : null].filter(Boolean));
 }
 
 // --- وضع الغمر: المؤقت بملء الشاشة وكل شي ثاني يختفي ---
@@ -1874,7 +1889,15 @@ function renderBonusLine(t) {
   const box = $('bonusLine');
   const done = isComplete(t);
   box.classList.toggle('complete', done);
-  if (!done) { box.textContent = L('أكمل كل المهام اليومية لتحصل على +' + DAY_BONUS_XP + ' XP إضافية.', 'Finish all daily quests to earn +' + DAY_BONUS_XP + ' bonus XP.'); return; }
+  if (!done) {
+    const fx = fixedFor(t);
+    const got = fx.filter((q) => doneIds(t).includes(q.id)).length;
+    box.replaceChildren(
+      el('span', { class: 'bl-msg', text: L('أكمل كل المهام اليومية لتحصل على +' + DAY_BONUS_XP + ' XP إضافية.', 'Finish all daily quests to earn +' + DAY_BONUS_XP + ' bonus XP.') }),
+      fx.length && !isRest(t) ? el('span', { class: 'pips', role: 'img', 'aria-label': L('أنجزت ' + got + ' من ' + fx.length + ' مهام يومية', got + ' of ' + fx.length + ' daily quests done') },
+        ...fx.map((q) => el('i', { class: doneIds(t).includes(q.id) ? 'on' : '' }))) : null);
+    return;
+  }
   const anime = theme() === 'anime';
   box.replaceChildren(
     el('span', { class: 'bl-tag', text: anime ? L('[ اكتملت مهام اليوم ]', '[ ALL DAILY QUESTS COMPLETE ]') : L('اكتمل البدر', 'The moon is full') }),
@@ -1945,6 +1968,55 @@ function bindLook() {
   let rz = 0;
   addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (view === 'stats') renderXpChart(Array.from({ length: chartRange }, (_, i) => addDays(todayIso(), i - chartRange + 1))); }, 200); });
   document.querySelectorAll('.range [data-range]').forEach((b) => b.addEventListener('click', () => { chartRange = Number(b.dataset.range); renderStats(streakInfo()); }));
+}
+
+/* ============ 17. الأنمي «النظام الحي»: الشريط العلوي، قائمة «أ»، وأزرار المدة ============ */
+// أزرار المدة: نفس خيارات القائمة المنسدلة (تبقى مخفية في الأنمي وتستخدم في حبر الليل)
+function renderDurChips() {
+  const box = $('durChips');
+  if (!box) return;
+  const sel = $('timerMinutes');
+  const short = { 15: L('15 د', '15m'), 25: L('25 د', '25m'), 45: L('45 د', '45m'), 60: L('ساعة', '1h'), 120: L('ساعتين', '2h'), 180: L('3 ساعات', '3h'), 240: L('4 ساعات', '4h') };
+  box.replaceChildren(...[...sel.options].map((o) => el('button', {
+    type: 'button', class: 'dur-chip', 'aria-pressed': String(o.value === sel.value), disabled: sel.disabled,
+    'aria-label': o.textContent, text: short[o.value] || o.textContent,
+    onclick: () => { if (sel.disabled || sel.value === o.value) return; sel.value = o.value; sel.dispatchEvent(new Event('change', { bubbles: true })); }
+  })));
+}
+
+// زر «أ»: الحرف الأول من اسمك، وقائمة فيها الحساب والنسخ والتيليجرام والصوت واللغة
+function renderMe() {
+  const n = (state.name || '').trim();
+  $('meInitial').textContent = n ? [...n][0].toUpperCase() : L('ص', 'H');
+}
+function bindMe() {
+  const menu = $('meMenu'), btn = $('meBtn');
+  const close = () => { menu.hidden = true; btn.setAttribute('aria-expanded', 'false'); };
+  const fill = () => {
+    const name = (state.name || '').trim() || L('صياد', 'Hunter');
+    const acc = typeof Cloud !== 'undefined' && Cloud.user ? (Cloud.user.email || '') : L('ضيف', 'Guest');
+    $('meWho').textContent = name + ' · ' + acc;
+    const on = $('soundBtn').getAttribute('aria-pressed') !== 'false';
+    $('meSound').textContent = on ? L('الصوت: شغال', 'Sound: on') : L('الصوت: مقفل', 'Sound: off');
+    $('meLang').textContent = EN ? 'العربية' : 'English';
+    $('meLang').lang = EN ? 'ar' : 'en';
+  };
+  btn.addEventListener('click', (e) => { e.stopPropagation(); fill(); menu.hidden = !menu.hidden; btn.setAttribute('aria-expanded', String(!menu.hidden)); if (!menu.hidden) $('meAcc').focus(); });
+  // كل عنصر يضغط الزر الأصلي، فنفس الميزة تشتغل بالضبط
+  let proxying = false;
+  const proxy = (id, target, keepOpen) => $(id).addEventListener('click', (e) => { e.stopPropagation(); if (!keepOpen) close(); proxying = true; try { $(target).click(); } finally { proxying = false; } if (keepOpen) fill(); });
+  proxy('meAcc', 'cloudBtn'); proxy('meBackup', 'backupBtn'); proxy('meTg', 'tgBtn'); proxy('meSound', 'soundBtn', true); proxy('meLang', 'langBtn');
+  document.addEventListener('click', (e) => { if (!proxying && !menu.hidden && !menu.contains(e.target)) close(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !menu.hidden) { close(); btn.focus(); } });
+}
+
+// الشريط العلوي شفاف وصورة البوابة تكمل خلفه: نعطي CSS ارتفاعه
+function bindTopbar() {
+  const bar = document.querySelector('.topbar');
+  if (!bar) return;
+  const set = () => document.documentElement.style.setProperty('--topbar-h', bar.offsetHeight + 'px');
+  set();
+  if ('ResizeObserver' in window) new ResizeObserver(set).observe(bar); else addEventListener('resize', set);
 }
 
 function start() {

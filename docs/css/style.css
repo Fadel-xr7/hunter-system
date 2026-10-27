@@ -1235,3 +1235,78 @@ dialog.lv-dlg::backdrop { background: rgba(1, 4, 11, .88); }
 @media (prefers-reduced-motion: reduce) {
   .hero-anime .motes { display: none; }
 }
+
+/* =====================================================================
+   17. الأنمي «النظام الحي»: باقي التصميم من لوحة Design
+   ===================================================================== */
+/* خلفية الصفحة: شبكة خطوط خفيفة */
+[data-theme="anime"] body { background-color: var(--bg); background-image: linear-gradient(rgba(127, 232, 255, .035) 1px, transparent 1px), linear-gradient(90deg, rgba(127, 232, 255, .035) 1px, transparent 1px); background-size: 56px 56px; }
+
+/* الشريط العلوي شفاف، وصورة البوابة تكمل خلفه */
+[data-theme="anime"] .topbar { background: rgba(3, 7, 18, .5); border-bottom: 1px solid rgba(127, 232, 255, .18); }
+[data-theme="anime"] .hero-anime { margin-top: calc(-1 * var(--topbar-h, 0px)); padding-top: var(--topbar-h, 0px); min-height: calc(500px + var(--topbar-h, 0px));
+  background: linear-gradient(180deg, rgba(4, 9, 21, .6) 0%, rgba(4, 9, 21, 0) 20%, rgba(4, 9, 21, 0) 48%, rgba(4, 9, 21, .88) 86%, #040915 100%), linear-gradient(270deg, rgba(4, 9, 21, .92) 0%, rgba(4, 9, 21, .5) 34%, rgba(4, 9, 21, .08) 64%, rgba(4, 9, 21, .72) 100%), url(../assets/dungeon-gate.webp) center 40% / cover no-repeat; }
+[dir="ltr"][data-theme="anime"] .hero-anime { background: linear-gradient(180deg, rgba(4, 9, 21, .6) 0%, rgba(4, 9, 21, 0) 20%, rgba(4, 9, 21, 0) 48%, rgba(4, 9, 21, .88) 86%, #040915 100%), linear-gradient(90deg, rgba(4, 9, 21, .92) 0%, rgba(4, 9, 21, .5) 34%, rgba(4, 9, 21, .08) 64%, rgba(4, 9, 21, .72) 100%), url(../assets/dungeon-gate.webp) center 40% / cover no-repeat; }
+[data-theme="anime"] .hero-anime .avatar { top: var(--topbar-h, 0px); }
+
+/* الأزرار: محفوظ في السحابة + القمر + «أ». الباقي داخل قائمة «أ» */
+[data-theme="anime"] :is(#cloudBtn, #tgBtn, #soundBtn, #backupBtn, #langBtn) { display: none !important; }
+.me-btn, #meMenu { display: none; }
+[data-theme="anime"] .me-btn { display: grid; font-family: var(--display); font-weight: 700; font-size: 18px; color: var(--bright); background: rgba(127, 232, 255, .1); border-color: var(--acc); }
+[data-theme="anime"] #meMenu:not([hidden]) { display: flex; }
+#meMenu button { text-align: start; }
+
+/* بوابة التركيز: نقاط حول الحلقة، حلقة بنفسجية تدور، وقلب ينبض */
+.ring-core, .ring-dots, .ring-spin { display: none; }
+[data-theme="anime"] .ring-core { display: block; fill: rgba(127, 232, 255, .07); transform-origin: 120px 120px; animation: corePulse 3.2s ease-in-out infinite; }
+[data-theme="anime"] #focusPanel.on-break .ring-core { fill: rgba(111, 227, 165, .07); }
+[data-theme="anime"] .ring-dots { display: block; fill: none; stroke: rgba(127, 232, 255, .35); stroke-width: 5; stroke-dasharray: 1.4 4.67; }
+[data-theme="anime"] .ring-spin { display: block; transform-origin: 120px 120px; animation: ringSpin 38s linear infinite; }
+[data-theme="anime"] .ring-spin circle { fill: none; stroke: rgba(196, 168, 255, .45); stroke-width: 1.2; stroke-dasharray: 36 10 4 10; }
+@keyframes corePulse { 0%, 100% { opacity: .55; transform: scale(.96); } 50% { opacity: 1; transform: scale(1.03); } }
+@keyframes ringSpin { to { transform: rotate(360deg); } }
+[data-theme="anime"] #timerSteps { margin-top: 4px; }
+
+/* المدة: أزرار بدل القائمة المنسدلة */
+.dur-chips { display: none; }
+[data-theme="anime"] .dur-sel { display: none; }
+[data-theme="anime"] .dur-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.dur-chip { flex: 1 1 auto; min-height: 44px; padding: 6px 10px; font-size: 14px; background: transparent; color: var(--muted); border: 1px solid rgba(127, 232, 255, .3); cursor: pointer; transition: background .2s ease, color .2s ease, box-shadow .2s ease; }
+.dur-chip:hover:not(:disabled) { background: rgba(127, 232, 255, .1); color: var(--bright); }
+.dur-chip[aria-pressed="true"] { background: rgba(127, 232, 255, .16); color: var(--bright); border-color: var(--acc); box-shadow: 0 0 14px -4px rgba(127, 232, 255, .7); }
+.dur-chip:disabled { cursor: not-allowed; opacity: .55; }
+
+/* عنوان «مهام اليوم»: خطوط جانبية بدون مربع، وتحته التاريخ وكم أنجزت */
+[data-theme="anime"] #tasksPanel .panel-head { gap: 4px; }
+[data-theme="anime"] #tasksTitle { width: 100%; justify-content: center; padding: 0; border: none; background: none; font-size: 26px; }
+[data-theme="anime"] #tasksTitle::before, [data-theme="anime"] #tasksTitle::after { content: ''; flex: 1 1 30px; max-width: 150px; width: auto; height: 1px; border: none; transform: none; background: linear-gradient(90deg, rgba(127, 232, 255, 0), rgba(127, 232, 255, .65)); }
+[data-theme="anime"] #tasksTitle::after { background: linear-gradient(90deg, rgba(127, 232, 255, .65), rgba(127, 232, 255, 0)); }
+[data-theme="anime"] #taskCount { font-size: 14px; color: var(--muted); }
+[data-theme="anime"] #taskCount b { font-family: var(--hud); font-weight: 400; color: var(--bright); }
+[data-theme="anime"] #tasksPanel .head-actions { margin-top: 10px; justify-content: center; }
+
+/* «كل يوم» + تلميح النجمة، وخبرة كل مهمة جنب الوقت */
+.grp-row { display: flex; align-items: center; gap: 10px; margin: 14px 0 2px; }
+.grp-row .grp { flex: none; margin: 0; }
+.grp-hint { flex: 1 1 auto; display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--muted); white-space: nowrap; }
+.grp-hint::before { content: ''; flex: 1 1 auto; height: 1px; background: rgba(127, 232, 255, .16); }
+.xpv { flex: none; font-family: var(--hud, inherit); font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+/* المكافأة: أشرطة تمتلئ مع كل مهمة يومية */
+.bonus-line .pips { display: none; }
+[data-theme="anime"] .bonus-line:not(.complete) { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+[data-theme="anime"] .bonus-line .pips { display: flex; gap: 4px; margin-inline-start: auto; }
+.pips i { width: 26px; height: 6px; transform: skewX(-20deg); background: rgba(127, 232, 255, .14); transition: background .4s ease, box-shadow .4s ease; }
+.pips i.on { background: var(--acc); box-shadow: 0 0 8px rgba(127, 232, 255, .8); }
+
+/* السجل: يوم الراحة أخضر، والإحصائيات فوق */
+[data-theme="anime"] .cell.rest i, [data-theme="anime"] .lg-rest::before { background: rgba(111, 227, 165, .6); }
+[data-theme="anime"] #heatPanel { align-items: flex-start; }
+[data-theme="anime"] #heatNote, [data-theme="anime"] .sc-hint { display: none; }
+
+@media (max-width: 600px) {
+  .grp-hint { white-space: normal; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ring-core, .ring-spin { animation: none; }
+}

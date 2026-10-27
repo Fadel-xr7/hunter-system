@@ -61,6 +61,15 @@
       <svg viewBox="0 0 24 24" aria-hidden="true" class="moon"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
       <svg viewBox="0 0 24 24" aria-hidden="true" class="star"><path d="M12 3l2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5z"/></svg>
     </button>
+    <button class="icon-btn me-btn" id="meBtn" aria-label="القائمة: الحساب والإعدادات" data-en-aria="Menu: account and settings" aria-haspopup="menu" aria-expanded="false"><span id="meInitial" aria-hidden="true"></span></button>
+    <div class="menu" id="meMenu" role="menu" hidden>
+      <p class="menu-note" id="meWho"></p>
+      <button role="menuitem" id="meAcc" data-en="Account and sync">الحساب والمزامنة</button>
+      <button role="menuitem" id="meBackup" data-en="Backup">النسخ الاحتياطي</button>
+      <button role="menuitem" id="meTg" data-en="Connect Telegram">ربط تيليجرام</button>
+      <button role="menuitem" id="meSound"></button>
+      <button role="menuitem" id="meLang"></button>
+    </div>
   </div>
 </header>
 
@@ -204,6 +213,9 @@
         <h2 id="focusTitle" data-en="Focus Gate">بوابة التركيز</h2>
         <div class="ring-wrap">
           <svg class="ring" viewBox="0 0 240 240" aria-hidden="true">
+            <circle class="ring-core" cx="120" cy="120" r="88"/>
+            <circle class="ring-dots" cx="120" cy="120" r="118"/>
+            <g class="ring-spin"><circle cx="120" cy="120" r="113"/></g>
             <circle class="ring-bg" cx="120" cy="120" r="108"/>
             <circle class="ring-fg" id="timerRing" cx="120" cy="120" r="108" pathLength="1000" transform="rotate(-90 120 120)"/>
             <circle class="orbit" id="timerOrbit" cx="120" cy="12" r="6"/>
@@ -216,7 +228,7 @@
         </div>
         <div class="steps" id="timerSteps" hidden></div>
         <div class="timer-opts">
-          <label data-en="Duration">المدة
+          <label class="dur-sel" data-en="Duration">المدة
             <select id="timerMinutes">
               <option value="15" data-en="15 min">15 دقيقة</option>
               <option value="25" selected data-en="25 min">25 دقيقة</option>
@@ -231,6 +243,7 @@
             <select id="timerLink"></select>
           </label>
         </div>
+        <div class="dur-chips" id="durChips" role="group" aria-label="مدة الجلسة" data-en-aria="Session length"></div>
         <label class="check" data-en="Complete the quest automatically when the session ends"><input type="checkbox" id="timerAuto" checked> أنجز المهمة تلقائياً لما تخلص الجلسة</label>
         <div class="row-btns">
           <button class="main-btn" id="timerStart" data-en="Enter the gate">ادخل البوابة</button>
