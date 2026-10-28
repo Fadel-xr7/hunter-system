@@ -172,11 +172,11 @@
           </div>
           <label for="quickInput" class="sr" data-en="Add a quest in one line (shortcut: /)">إضافة مهمة بسطر واحد (اختصار: /)</label>
           <span class="quick-field">
-            <input id="quickInput" type="text" maxlength="200" placeholder="مثال: مذاكرة الشبكات الساعة 9 مساءً !B #ذكاء" data-en-ph="e.g. Study networks at 9pm !B #intellect" aria-keyshortcuts="/">
+            <input id="quickInput" type="text" maxlength="200" placeholder="مثال: مذاكرة الشبكات 9 مساءً" data-en-ph="e.g. Study networks 9pm" aria-keyshortcuts="/">
             <kbd class="slash-key" aria-hidden="true" title="اضغط / من أي مكان" data-en-title="Press / from anywhere">/</kbd>
           </span>
           <button type="submit" class="main-btn" data-en="Add">أضف</button>
-          <p class="quick-hint" id="quickHint" data-en="Pick &quot;Every day&quot; for a quest that repeats; it's added once. You can also type &quot;tomorrow&quot; or &quot;day 12&quot; for another date, !A for the rank, and #intellect for the ability.">«كل يوم» للمهمة اللي تتكرر، وتنضاف مرة وحدة بس. وتقدر تكتب «بكرة» أو «يوم 12» لموعد آخر، و!A للرتبة، و#ذكاء للقدرة.</p>
+          <p class="quick-hint" id="quickHint" data-en="Write it the way you'd say it. Optional: a time (9pm, 7:30am), a day (tomorrow, day 12), &quot;daily&quot; to repeat it, a difficulty from !E (easy) to !S (hardest), and an ability like #intellect. No time means 5 pm.">اكتبها مثل ما تتكلم. واختياري تضيف: الوقت (9 مساءً، 7 الصبح، 9:30م)، اليوم (بكرة، يوم 12)، «يومي» لو تتكرر، الصعوبة من !E (سهلة) إلى !S (أصعب شي)، والقدرة مثل #ذكاء. بدون وقت تصير 5 مساءً.</p>
         </form>
 
         <div id="taskList"></div>
@@ -382,7 +382,7 @@
     <div id="tgReady" hidden>
       <ol class="tg-steps">
         <li data-en-html="Open the bot in Telegram and press &lt;b&gt;Start&lt;/b&gt;.">افتح البوت في تيليجرام واضغط <b>Start</b>.</li>
-        <li data-en-html="Send your quest in one line, for example: &lt;code&gt;task: read 10 pages at 9pm #intellect&lt;/code&gt;">أرسل مهمتك بسطر واحد، مثال: <code>مهمة: قراءة 10 صفحات الساعة 9 مساءً #ذكاء</code></li>
+        <li data-en-html="Send your quest the way you'd say it, for example: &lt;code&gt;read 10 pages 9pm&lt;/code&gt;">أرسل مهمتك مثل ما تتكلم، مثال: <code>قراءة 10 صفحات 9 مساءً</code></li>
         <li data-en="Press the link it sends you, and approve the quest here.">اضغط الرابط اللي يرسله لك، ووافق على المهمة هنا.</li>
       </ol>
       <a class="main-btn tg-open" id="tgOpen" href="#" target="_blank" rel="noopener" data-en="Open the bot in Telegram">افتح البوت في تيليجرام</a>

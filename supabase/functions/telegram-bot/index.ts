@@ -45,23 +45,29 @@ const realSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 const HELP_AR =
   '⚔️ <b>نظام الصياد جاهز</b>\n\n' +
-  'أرسل مهمتك بسطر واحد، مثال:\n' +
-  '<code>مهمة: مراجعة الكود الساعة 10 مساءً !A #ذكاء</code>\n\n' +
-  '• <code>!E</code> إلى <code>!S</code> = رتبة البوابة\n' +
-  '• <code>#قوة #حيوية #رشاقة #ذكاء #انضباط</code> = القدرة\n' +
-  '• <code>بكرة</code> أو <code>يوم 12</code> = اليوم\n' +
-  '• <code>يومي</code> = مهمة ثابتة كل يوم\n\n' +
+  'اكتب مهمتك مثل ما تتكلم، مثال:\n' +
+  '<code>مراجعة الكود 8 مساءً</code>\n\n' +
+  'وتقدر تضيف (كلها اختيارية):\n' +
+  '• الوقت: <code>8 مساءً</code> أو <code>7 الصبح</code> أو <code>9:30م</code>\n' +
+  '• اليوم: <code>بكرة</code> أو <code>بعد بكرة</code> أو <code>يوم 12</code>\n' +
+  '• <code>يومي</code> لو تتكرر كل يوم\n' +
+  '• الصعوبة: من <code>!E</code> (سهلة) إلى <code>!S</code> (أصعب شي)\n' +
+  '• القدرة: <code>#قوة #حيوية #رشاقة #ذكاء #انضباط</code>\n' +
+  'بدون وقت تصير 5 مساءً.\n\n' +
   'أرد عليك برابط، اضغطه فيفتح الموقع ويسألك قبل الإضافة.\n' +
   '🔒 ما أحفظ رسائلك، والمهمة تنضاف في حسابك أنت بس.';
 
 const HELP_EN =
   '⚔️ <b>The Hunter System is ready</b>\n\n' +
-  'Send your quest in one line, for example:\n' +
-  '<code>task: review the code at 10pm !A #intellect</code>\n\n' +
-  '• <code>!E</code> to <code>!S</code> = gate rank\n' +
-  '• <code>#strength #vitality #agility #intellect #discipline</code> = ability\n' +
-  '• <code>tomorrow</code> or <code>day 12</code> = the day\n' +
-  '• <code>daily</code> = a quest that repeats every day\n\n' +
+  "Write your quest the way you'd say it, for example:\n" +
+  '<code>review the code 8pm</code>\n\n' +
+  'You can add (all optional):\n' +
+  '• a time: <code>8pm</code> or <code>7:30am</code>\n' +
+  '• a day: <code>tomorrow</code> or <code>day 12</code>\n' +
+  '• <code>daily</code> if it repeats every day\n' +
+  '• difficulty: <code>!E</code> (easy) to <code>!S</code> (hardest)\n' +
+  '• ability: <code>#strength #vitality #agility #intellect #discipline</code>\n' +
+  'No time means 5 pm.\n\n' +
   'I reply with a link. Open it and the site asks you before adding.\n' +
   "🔒 I don't keep your messages, and the quest is added to your own account only.";
 
