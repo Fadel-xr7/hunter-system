@@ -27,3 +27,20 @@ jobs:
         run: npm test
       - name: صيغة البوت (بايثون)
         run: python3 -m py_compile bot/bot.py
+  # اختبارات المتصفح (Playwright): مزامنة بطيئة، فشل النسخة الاحتياطية، ومنتصف الليل.
+  # تشغّل الموقع من docs/ على سيرفر محلي مع Supabase وهمي، فما تحتاج نت ولا حساب.
+  browser:
+    runs-on: ubuntu-latest
+    env:
+      TZ: Asia/Riyadh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: تثبيت Chromium
+        run: npx playwright install --with-deps chromium
+      - name: اختبارات المتصفح
+        run: npm run test:e2e

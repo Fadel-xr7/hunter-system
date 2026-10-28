@@ -20,3 +20,6 @@ desktop.ini
 # ملفات الشرح: تبقى على جهازك بس، ما تنرفع على GitHub
 README.md
 bot/README.md
+
+# اختبارات المتصفح (npm ci يثبّتها)
+node_modules/

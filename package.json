@@ -2,12 +2,16 @@
   "name": "hunter-system",
   "private": true,
   "type": "module",
-  "description": "نظام الصياد: اختبارات المنطق وملفات الموقع وبوت تيليجرام. الموقع نفسه ما يحتاج أي تثبيت.",
+  "description": "نظام الصياد: اختبارات المنطق وملفات الموقع وبوت تيليجرام، واختبارات المتصفح. الموقع نفسه ما يحتاج أي تثبيت.",
   "scripts": {
     "test": "node --experimental-strip-types --test \"tests/*.test.*\"",
+    "test:e2e": "node --test --test-concurrency=1 \"tests/e2e/*.e2e.mjs\"",
     "check": "node -e \"for (const f of require('fs').readdirSync('docs/js')) require('child_process').execFileSync(process.execPath, ['--check', 'docs/js/' + f], { stdio: 'inherit' })\" && node --check docs/sw.js"
   },
   "engines": {
     "node": ">=22.6"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
   }
 }
