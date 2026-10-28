@@ -1,0 +1,13 @@
+{
+  "name": "hunter-system",
+  "private": true,
+  "type": "module",
+  "description": "نظام الصياد: اختبارات المنطق وملفات الموقع وبوت تيليجرام. الموقع نفسه ما يحتاج أي تثبيت.",
+  "scripts": {
+    "test": "node --experimental-strip-types --test \"tests/*.test.*\"",
+    "check": "node -e \"for (const f of require('fs').readdirSync('docs/js')) require('child_process').execFileSync(process.execPath, ['--check', 'docs/js/' + f], { stdio: 'inherit' })\" && node --check docs/sw.js"
+  },
+  "engines": {
+    "node": ">=22.6"
+  }
+}

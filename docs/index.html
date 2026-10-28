@@ -61,15 +61,6 @@
       <svg viewBox="0 0 24 24" aria-hidden="true" class="moon"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
       <svg viewBox="0 0 24 24" aria-hidden="true" class="star"><path d="M12 3l2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5z"/></svg>
     </button>
-    <button class="icon-btn me-btn" id="meBtn" aria-label="القائمة: الحساب والإعدادات" data-en-aria="Menu: account and settings" aria-haspopup="menu" aria-expanded="false"><span id="meInitial" aria-hidden="true"></span></button>
-    <div class="menu" id="meMenu" role="menu" hidden>
-      <p class="menu-note" id="meWho"></p>
-      <button role="menuitem" id="meAcc" data-en="Account and sync">الحساب والمزامنة</button>
-      <button role="menuitem" id="meBackup" data-en="Backup">النسخ الاحتياطي</button>
-      <button role="menuitem" id="meTg" data-en="Connect Telegram">ربط تيليجرام</button>
-      <button role="menuitem" id="meSound"></button>
-      <button role="menuitem" id="meLang"></button>
-    </div>
   </div>
 </header>
 
@@ -229,15 +220,7 @@
         <div class="steps" id="timerSteps" hidden></div>
         <div class="timer-opts">
           <label class="dur-sel" data-en="Duration">المدة
-            <select id="timerMinutes">
-              <option value="15" data-en="15 min">15 دقيقة</option>
-              <option value="25" selected data-en="25 min">25 دقيقة</option>
-              <option value="45" data-en="45 min">45 دقيقة</option>
-              <option value="60" data-en="1 hr (Pomodoro)">ساعة (بومودورو)</option>
-              <option value="120" data-en="2 hrs">ساعتين</option>
-              <option value="180" data-en="3 hrs">3 ساعات</option>
-              <option value="240" data-en="4 hrs">4 ساعات</option>
-            </select>
+            <select id="timerMinutes"><!-- الخيارات من TIMER_OPTS في core.js --></select>
           </label>
           <label data-en="Which quest?">على أي مهمة؟
             <select id="timerLink"></select>
@@ -395,16 +378,16 @@
 <dialog id="tgDialog" class="panel dlg wide" aria-labelledby="tgTitle">
   <form method="dialog">
     <h2 id="tgTitle" data-en="Connect the Telegram bot">ربط بوت تيليجرام</h2>
-    <p class="muted" data-en="Send the bot a quest from Telegram in one line, and it replies with a link. Open the link and the quest is added here once you approve.">ترسل للبوت مهمة من تيليجرام بسطر واحد، فيرد عليك برابط. تضغط الرابط وتنضاف المهمة هنا بعد ما توافق.</p>
-    <ol class="tg-steps">
-      <li data-en-html="In Telegram open &lt;b&gt;@BotFather&lt;/b&gt;, send &lt;code&gt;/newbot&lt;/code&gt; and pick a name for the bot. It gives you a &lt;b&gt;token&lt;/b&gt;, copy it.">في تيليجرام افتح <b>@BotFather</b> وأرسل <code>/newbot</code>، واختر اسم للبوت. بيعطيك <b>توكن</b>، انسخه.</li>
-      <li data-en-html="In the &lt;code&gt;bot&lt;/code&gt; folder copy &lt;code&gt;.env.example&lt;/code&gt;, name the copy &lt;code&gt;.env&lt;/code&gt;, and put the token after &lt;code&gt;TELEGRAM_BOT_TOKEN=&lt;/code&gt;">في مجلد <code>bot</code> انسخ ملف <code>.env.example</code> وسمِّ النسخة <code>.env</code>، وحط التوكن بعد <code>TELEGRAM_BOT_TOKEN=</code></li>
-      <li><span data-en-html="Make sure the link after &lt;code&gt;SITE_URL=&lt;/code&gt; is this site's link:">تأكد إن الرابط بعد <code>SITE_URL=</code> هو رابط موقعك هذا:</span>
-        <span class="copy-row"><code id="tgUrl" dir="ltr"></code><button type="button" class="mini" id="tgCopy" data-en="Copy">نسخ</button></span></li>
-      <li data-en-html="Open a Terminal in VS Code inside the &lt;code&gt;bot&lt;/code&gt; folder and run: &lt;code dir=&quot;ltr&quot;&gt;uv run bot.py&lt;/code&gt;">افتح Terminal في VS Code داخل مجلد <code>bot</code> وشغّل: <code dir="ltr">uv run bot.py</code></li>
-      <li data-en-html="Send &lt;code&gt;/start&lt;/code&gt; to the bot. It gives you your ID; put it after &lt;code&gt;ALLOWED_USER_ID=&lt;/code&gt; so it only answers you, then restart the bot.">أرسل <code>/start</code> للبوت. بيعطيك رقمك، حطه بعد <code>ALLOWED_USER_ID=</code> عشان يرد عليك أنت بس، وأعد تشغيل البوت.</li>
-    </ol>
-    <p class="note" data-en="The bot runs as long as the Terminal is open. The local link only opens on your computer; to open it from your phone, host the site somewhere like GitHub Pages.">البوت يشتغل ما دام الـ Terminal مفتوح. والرابط المحلي يفتح على كمبيوترك بس، وعشان يفتح من الجوال لازم ترفع الموقع على استضافة مثل GitHub Pages.</p>
+    <p class="muted" data-en="Send the bot a quest in one line and it replies with a link. Open the link and the quest is added here once you approve. The bot keeps nothing: the quest goes to your own account only.">ترسل للبوت مهمة بسطر واحد، فيرد عليك برابط. تضغط الرابط وتنضاف المهمة هنا بعد ما توافق. البوت ما يحفظ شي، والمهمة تروح لحسابك أنت بس.</p>
+    <div id="tgReady" hidden>
+      <ol class="tg-steps">
+        <li data-en-html="Open the bot in Telegram and press &lt;b&gt;Start&lt;/b&gt;.">افتح البوت في تيليجرام واضغط <b>Start</b>.</li>
+        <li data-en-html="Send your quest in one line, for example: &lt;code&gt;task: read 10 pages at 9pm #intellect&lt;/code&gt;">أرسل مهمتك بسطر واحد، مثال: <code>مهمة: قراءة 10 صفحات الساعة 9 مساءً #ذكاء</code></li>
+        <li data-en="Press the link it sends you, and approve the quest here.">اضغط الرابط اللي يرسله لك، ووافق على المهمة هنا.</li>
+      </ol>
+      <a class="main-btn tg-open" id="tgOpen" href="#" target="_blank" rel="noopener" data-en="Open the bot in Telegram">افتح البوت في تيليجرام</a>
+    </div>
+    <p class="note" id="tgNotReady" hidden data-en="The bot isn't connected to this site yet.">البوت ما انربط بالموقع للحين.</p>
     <h3 class="tg-try-title" data-en="Try the link without the bot">جرّب الرابط بدون البوت</h3>
     <div class="quick">
       <label for="tgTest" class="sr" data-en="Quest text to try">نص المهمة للتجربة</label>
@@ -470,6 +453,7 @@
 <script src="js/i18n.js"></script>
 <script src="vendor/supabase.js"></script>
 <script src="js/config.js"></script>
+<script src="js/core.js"></script>
 <script src="js/app.js"></script>
 <script src="js/cloud.js"></script>
 </body>

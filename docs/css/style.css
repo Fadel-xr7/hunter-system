@@ -449,8 +449,7 @@ select option { background: var(--bg); color: var(--text); }
 .tg-steps { margin: 0; padding-inline-start: 22px; display: flex; flex-direction: column; gap: 10px; font-size: 15px; }
 .tg-steps li::marker { color: var(--acc); font-family: var(--display); font-weight: 700; }
 .dlg code { font-family: ui-monospace, Consolas, monospace; font-size: 13px; padding: 1px 6px; background: var(--soft); border: 1px solid var(--line); direction: ltr; unicode-bidi: isolate; }
-.copy-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 6px; }
-.copy-row code { overflow-wrap: anywhere; }
+.tg-open { display: inline-flex; align-items: center; justify-content: center; margin-top: 14px; text-decoration: none; }
 .tg-try-title { font-family: var(--display); font-size: 17px; color: var(--bright); }
 .dlg h2 { font-family: var(--display); font-size: 22px; color: var(--bright); }
 
@@ -1249,12 +1248,6 @@ dialog.lv-dlg::backdrop { background: rgba(1, 4, 11, .88); }
 [dir="ltr"][data-theme="anime"] .hero-anime { background: linear-gradient(180deg, rgba(4, 9, 21, .6) 0%, rgba(4, 9, 21, 0) 20%, rgba(4, 9, 21, 0) 48%, rgba(4, 9, 21, .88) 86%, #040915 100%), linear-gradient(90deg, rgba(4, 9, 21, .92) 0%, rgba(4, 9, 21, .5) 34%, rgba(4, 9, 21, .08) 64%, rgba(4, 9, 21, .72) 100%), url(../assets/dungeon-gate.webp) center 40% / cover no-repeat; }
 [data-theme="anime"] .hero-anime .avatar { top: var(--topbar-h, 0px); }
 
-/* الأزرار: محفوظ في السحابة + القمر + «أ». الباقي داخل قائمة «أ» */
-[data-theme="anime"] :is(#cloudBtn, #tgBtn, #soundBtn, #backupBtn, #langBtn) { display: none !important; }
-.me-btn, #meMenu { display: none; }
-[data-theme="anime"] .me-btn { display: grid; font-family: var(--display); font-weight: 700; font-size: 18px; color: var(--bright); background: rgba(127, 232, 255, .1); border-color: var(--acc); }
-[data-theme="anime"] #meMenu:not([hidden]) { display: flex; }
-#meMenu button { text-align: start; }
 
 /* بوابة التركيز: نقاط حول الحلقة، حلقة بنفسجية تدور، وقلب ينبض */
 .ring-core, .ring-dots, .ring-spin { display: none; }
@@ -1307,6 +1300,11 @@ dialog.lv-dlg::backdrop { background: rgba(1, 4, 11, .88); }
 @media (max-width: 600px) {
   .grp-hint { white-space: normal; }
 }
-@media (prefers-reduced-motion: reduce) {
-  .ring-core, .ring-spin { animation: none; }
-}
+
+/* البطل على الشاشات العريضة: الاسم والحالة وصورة الشخصية بنفس عرض البطاقات، والخلفية تبقى بعرض الشاشة */
+.hero-anime .hero-body { width: 100%; max-width: 1480px; margin-inline: auto; }
+.hero-anime .avatar { right: max(-10px, calc((100% - 1480px) / 2 - 10px)); }
+[dir="ltr"] .hero-anime .avatar { right: auto; left: max(-10px, calc((100% - 1480px) / 2 - 10px)); }
+
+/* النوافذ: .panel تعطي position: relative، فنرجّع التثبيت عشان ما تمشي مع السكرول */
+dialog.panel:modal { position: fixed; }

@@ -14,14 +14,15 @@ const Cloud = (() => {
     auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
   }) : null;
   const TABLE = 'hunter_state';
-  const META_KEY = 'hunterSync_v6';
-  const GUEST_KEY = 'hunterGuest_v6';
+  const META_KEY = STORE_KEYS.sync;
+  const GUEST_KEY = STORE_KEYS.guest;
   const here = () => location.origin + location.pathname;
 
   let user = null;
   let status = 'off';
   let pushTimer = null;
   let pushing = false;
+  let rev = 0; // يزيد مع كل تعديل: نعرف لو عدّلت أثناء ما الرفع شغّال
   let applying = false;
   let googleOn = null;
   let meta = readMeta();
@@ -66,6 +67,7 @@ const Cloud = (() => {
   // التطبيق نادى save(): نجدول رفع بعد ثانية ونص
   function changed() {
     if (!user || applying) return;
+    rev++;
     meta.dirty = true; writeMeta();
     setStatus(navigator.onLine ? 'saving' : 'offline');
     clearTimeout(pushTimer);
@@ -89,22 +91,29 @@ const Cloud = (() => {
     if (!navigator.onLine) { setStatus('offline'); return; }
     pushing = true;
     const uid = user.id;
+    const startRev = rev;
+    const snap = cleanState(); // نرفع هذي بالضبط، وأي تعديل بعدها يبقى معلّق
     try {
       let res;
       if (meta.uid !== uid || !meta.at) {
-        res = await sb.from(TABLE).insert({ user_id: uid, data: cleanState() }).select('updated_at').single();
+        res = await sb.from(TABLE).insert({ user_id: uid, data: snap }).select('updated_at').single();
         if (res.error && res.error.code === '23505') { pushing = false; await pull(); return; }
       } else {
         // يحدّث بس إذا محد عدّل من جهاز ثاني بعد آخر مزامنة
-        res = await sb.from(TABLE).update({ data: cleanState() }).eq('user_id', uid).eq('updated_at', meta.at).select('updated_at');
+        res = await sb.from(TABLE).update({ data: snap }).eq('user_id', uid).eq('updated_at', meta.at).select('updated_at');
         if (!res.error && Array.isArray(res.data) && res.data.length === 0) { pushing = false; await resolveConflict(); return; }
         if (!res.error) res = { data: res.data[0] };
       }
       if (res.error) throw res.error;
       if (!user || user.id !== uid) return;
-      meta = { uid, at: res.data.updated_at, dirty: false };
+      meta = afterPush(uid, res.data.updated_at, startRev, rev);
       writeMeta();
-      setStatus('synced');
+      if (meta.dirty) {
+        // عدّلت أثناء الرفع: التعديل الأحدث ما انرفع، نرفعه بعد ثانية
+        setStatus('saving');
+        clearTimeout(pushTimer);
+        pushTimer = setTimeout(push, 400);
+      } else setStatus('synced');
     } catch (e) {
       clearTimeout(pushTimer);
       // 23514 = تعدّى حد الحجم: ما نعيد المحاولة كل شوي، ننتظر تعديلك الجاي
@@ -145,9 +154,26 @@ const Cloud = (() => {
   }
 
   async function ask(row, why) {
-    const keepAccount = await choose(why + L('\n\nحسابك: ', '\n\nAccount: ') + summary(row.data) + L('\nهذا المتصفح: ', '\nThis browser: ') + summary(cleanState()) + L('\n\nأيهم تبقي؟ الثاني ينحذف.', '\n\nWhich one do you keep? The other gets deleted.'), L('اللي في حسابي', 'Keep my account'), L('اللي في هذا المتصفح', 'Keep this browser'));
-    if (keepAccount) { apply(row.data, row.updated_at); toast(L('أخذنا بياناتك من الحساب', 'Loaded your data from the account'), ''); }
-    else { meta = { uid: user.id, at: row.updated_at, dirty: true }; writeMeta(); await push(); toast(L('رفعنا بيانات هذا المتصفح لحسابك', "Uploaded this browser's data to your account"), ''); }
+    const keepAccount = await choose(why + L('\n\nحسابك: ', '\n\nAccount: ') + summary(row.data) + L('\nهذا المتصفح: ', '\nThis browser: ') + summary(cleanState()) + L('\n\nأيهم تبقي؟ الثاني ينحذف، وينزل لك ملف نسخة منه احتياط.', '\n\nWhich one do you keep? The other gets deleted, and a backup file of it is downloaded just in case.'), L('اللي في حسابي', 'Keep my account'), L('اللي في هذا المتصفح', 'Keep this browser'));
+    if (keepAccount) {
+      if (!(await keepCopy(cleanState(), 'browser'))) return noBackup();
+      apply(row.data, row.updated_at);
+      toast(L('أخذنا بياناتك من الحساب', 'Loaded your data from the account'), L('ونزّلنا نسخة من بيانات هذا المتصفح احتياط', "A copy of this browser's data was downloaded just in case"));
+    } else {
+      if (!(await keepCopy(normalize(row.data), 'account'))) return noBackup();
+      meta = { uid: user.id, at: row.updated_at, dirty: true }; writeMeta(); await push();
+      toast(L('رفعنا بيانات هذا المتصفح لحسابك', "Uploaded this browser's data to your account"), L('ونزّلنا نسخة من بيانات الحساب القديمة احتياط', "A copy of the account's old data was downloaded just in case"));
+    }
+  }
+
+  // قبل ما ينحذف أي طرف في التعارض: نسخة مؤكدة منه (ensureRecoveryCopy في app.js).
+  // false = ما فيه نسخة مؤكدة، فما نحذف شي.
+  function keepCopy(data, side) {
+    return ensureRecoveryCopy(data, side, 'hunter-' + side + '-copy-' + todayIso() + '.json');
+  }
+  function noBackup() {
+    setStatus('error');
+    toast(L('ما غيّرنا شي في بياناتك', "We didn't change your data"), L('ما عندنا نسخة احتياطية مؤكدة قبل الحذف. فضّي مساحة بالمتصفح أو احفظ ملف النسخة، وبعدها اضغط مزامنة.', "There's no confirmed backup copy. Free some browser space or save the backup file, then press Sync."), 'warn');
   }
 
   function choose(text, aLabel, bLabel) {
@@ -170,7 +196,7 @@ const Cloud = (() => {
     hideAuth();
     setStatus('saving');
     await pull();
-    if (!state.name && metaName) { state.name = String(metaName).slice(0, 18); store.set('hunterNameAsked_v6', '1'); commit(); }
+    if (!state.name && metaName) { state.name = String(metaName).slice(0, 18); store.set(STORE_KEYS.nameAsked, '1'); commit(); }
     renderAccount();
     afterEntry();
   }
@@ -182,7 +208,7 @@ const Cloud = (() => {
     await sb.auth.signOut().catch(() => {});
     user = null;
     applying = true;
-    state = freshState(); meta = {}; store.del(META_KEY); store.del('hunterNameAsked_v6');
+    state = freshState(); meta = {}; store.del(META_KEY); store.del(STORE_KEYS.nameAsked);
     save(); applying = false;
     commit(); runTimer();
     showAuth('in');
@@ -294,7 +320,7 @@ const Cloud = (() => {
         const { data, error } = await sb.auth.signUp({ email, password: pw, options: { emailRedirectTo: here(), data: name ? { name } : {} } });
         if (error) throw error;
         if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) throw { code: 'user_already_exists' };
-        if (name && !state.name) { state.name = name; store.set('hunterNameAsked_v6', '1'); save(); }
+        if (name && !state.name) { state.name = name; store.set(STORE_KEYS.nameAsked, '1'); save(); }
         $('aPw').value = '';
         if (data.session) await onSignedIn(data.user); else setMode('verify');
       } else if (mode === 'forgot') {
@@ -368,6 +394,8 @@ const Cloud = (() => {
 
     window.addEventListener('online', () => { if (user && meta.dirty) push(); });
     window.addEventListener('offline', () => { if (user) setStatus('offline'); });
+    // تبويب ثاني رفع أو عدّل: ناخذ حالة المزامنة منه، عشان ما يطلع تعارض وهمي بين نافذتين جنب بعض
+    window.addEventListener('storage', (e) => { if (e.key === META_KEY) meta = readMeta(); });
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && user && !meta.dirty && !pushing) pull(); });
   }
 

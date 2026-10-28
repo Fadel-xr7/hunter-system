@@ -1,9 +1,12 @@
 # /// script
 # requires-python = ">=3.10"
-# dependencies = ["python-telegram-bot==21.6"]
+# dependencies = ["python-telegram-bot==22.8"]
 # ///
 """
-بوت تيليجرام لنظام الصياد.
+بوت تيليجرام لنظام الصياد: نسخة تشغّلها على جهازك لك أنت بس.
+
+البوت الأساسي (للكل، يشتغل 24 ساعة) صار على Supabase: supabase/functions/telegram-bot.
+هذا الملف للي يبي بوت خاص فيه يشتغل من جهازه.
 
 ترسل له مهمة بسطر واحد، مثل:
     مهمة: مراجعة الكود الساعة 10 مساءً !A #ذكاء
@@ -23,7 +26,7 @@ import re
 from pathlib import Path
 from urllib.parse import quote, urlparse
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, LinkPreviewOptions, Update
 from telegram.constants import ParseMode
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 
@@ -151,7 +154,7 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if button_ok(link):
         markup = InlineKeyboardMarkup([[InlineKeyboardButton("⚔️ Add it to the System" if en else "⚔️ أضفها للنظام", url=link)]])
     await message.reply_text(reply, parse_mode=ParseMode.HTML, reply_markup=markup,
-                                    disable_web_page_preview=True)
+                             link_preview_options=LinkPreviewOptions(is_disabled=True))
 
 
 def escape(s: str) -> str:

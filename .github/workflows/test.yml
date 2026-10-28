@@ -1,0 +1,29 @@
+# يشغّل الاختبارات مع كل push وكل pull request. لو فشل شي، تطلع علامة ❌ جنب الـ commit في GitHub.
+name: الاختبارات
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tz: [UTC, Asia/Riyadh]
+    env:
+      TZ: ${{ matrix.tz }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: صيغة ملفات الموقع
+        run: npm run check
+      - name: الاختبارات
+        run: npm test
+      - name: صيغة البوت (بايثون)
+        run: python3 -m py_compile bot/bot.py

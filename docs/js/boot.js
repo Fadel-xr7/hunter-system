@@ -2,16 +2,24 @@
 /* نظام الصياد — boot.js
    يشتغل قبل أول رسم: يطبّق الواجهة واللغة المحفوظة، ويقرر إذا تطلع شاشة الدخول.
    (كان داخل index.html، وانتقل لملف لحاله عشان سياسة الأمان CSP تمنع أي سكربت داخل الصفحة) */
+// مفاتيح التخزين في المتصفح، بمكان واحد. هذا أول ملف يتحمّل، فكل الملفات بعده تستخدمها
+const STORE_KEYS = Object.freeze({
+  state: 'hunterSystem_v6', theme: 'hunterTheme_v6', lang: 'hunterLang_v6', guest: 'hunterGuest_v6',
+  sync: 'hunterSync_v6', nameAsked: 'hunterNameAsked_v6', brief: 'hunterBrief_v6', conflictCopy: 'hunterConflictCopy_v6'
+});
+// اللغة: اختيارك المحفوظ، وأول مرة حسب لغة الجهاز (عربي إذا الجهاز عربي، وإلا English). i18n.js يقرأها من هنا
+const BOOT_LANG = (function () {
+  try {
+    var saved = localStorage.getItem(STORE_KEYS.lang);
+    if (saved === 'ar' || saved === 'en') return saved;
+    return /^ar\b/i.test((navigator.languages && navigator.languages[0]) || navigator.language || 'ar') ? 'ar' : 'en';
+  } catch (e) { return 'ar'; }
+})();
 // الواجهة المحفوظة
-try { var t = localStorage.getItem('hunterTheme_v6'); if (t === 'ink' || t === 'anime') document.documentElement.dataset.theme = t; } catch (e) {}
-// اللغة: اختيارك المحفوظ، وأول مرة حسب لغة الجهاز (عربي إذا الجهاز عربي، وإلا English)
-try {
-  var lg = localStorage.getItem('hunterLang_v6');
-  if (lg !== 'ar' && lg !== 'en') lg = /^ar\b/i.test((navigator.languages && navigator.languages[0]) || navigator.language || 'ar') ? 'ar' : 'en';
-  if (lg === 'en') { document.documentElement.lang = 'en'; document.documentElement.dir = 'ltr'; document.title = 'Hunter System'; }
-} catch (e) {}
+try { var t = localStorage.getItem(STORE_KEYS.theme); if (t === 'ink' || t === 'anime') document.documentElement.dataset.theme = t; } catch (e) {}
+if (BOOT_LANG === 'en') { document.documentElement.lang = 'en'; document.documentElement.dir = 'ltr'; document.title = 'Hunter System'; }
 // شاشة الدخول: تظهر إذا ما فيه جلسة محفوظة وما اخترت تكمل كضيف
 try {
   var hasSession = Object.keys(localStorage).some(function (k) { return /^sb-.+-auth-token$/.test(k); });
-  if (!hasSession && !localStorage.getItem('hunterGuest_v6')) document.documentElement.classList.add('need-auth');
+  if (!hasSession && !localStorage.getItem(STORE_KEYS.guest)) document.documentElement.classList.add('need-auth');
 } catch (e) {}

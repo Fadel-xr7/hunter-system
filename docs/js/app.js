@@ -1,401 +1,16 @@
 'use strict';
 /* =====================================================================
-   نظام الصياد — app.js
-   الأقسام بالترتيب:
+   نظام الصياد — app.js (الواجهة والرسم)
+   الأقسام 1 إلى 5 ومحلل الإضافة السريعة صاروا في core.js:
    1. أدوات عامة        2. البيانات والحفظ      3. نقل البيانات القديمة
-   4. المكافآت والمستوى  5. الأيام والسلسلة       6. المهام
+   4. المكافآت والمستوى  5. الأيام والسلسلة
+   وهنا: 6. المهام
    7. الإضافة السريعة    8. مؤقت التركيز         9. الإنجازات
    10. النسخ الاحتياطي   11. الصوت والتأثيرات    12. الرسم (render)
    13. التشغيل          14. الإضافات: المهمة الأهم، الألقاب، البطاقات، تقرير النظام
    15. إضافات 26 أكتوبر: التراجع، خطوات البوابة، تفاصيل اليوم، وضع الغمر
    16. الشكل الجديد: النظام الحي (أنمي) ودفتر القمر (حبر الليل)
    ===================================================================== */
-
-/* ============ 1. أدوات عامة ============ */
-const $ = (id) => document.getElementById(id);
-const pad = (n) => String(n).padStart(2, '0');
-const isoOf = (d) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
-const todayIso = () => isoOf(new Date());
-const dateOf = (iso) => new Date(iso + 'T00:00:00');
-const addDays = (iso, n) => { const d = dateOf(iso); d.setDate(d.getDate() + n); return isoOf(d); };
-const isIso = (s) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
-const isTime = (s) => typeof s === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(s);
-const clampNum = (v, min, max, def) => { const n = Number(v); return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : def; };
-const uid = (p) => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-const reducedMotion = () => window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-// إنشاء عناصر بأمان: النص يدخل كنص، فما يقدر أحد يحقن HTML
-function el(tag, props, ...kids) {
-  const n = document.createElement(tag);
-  for (const [k, v] of Object.entries(props || {})) {
-    if (v === null || v === undefined || v === false) continue;
-    if (k === 'class') n.className = v;
-    else if (k === 'text') n.textContent = v;
-    else if (k === 'style') n.style.cssText = v;
-    else if (k.startsWith('on')) n.addEventListener(k.slice(2), v);
-    else n.setAttribute(k, v === true ? '' : v);
-  }
-  for (const c of kids.flat()) if (c !== null && c !== undefined && c !== false) n.append(c instanceof Node ? c : String(c));
-  return n;
-}
-const SVGNS = 'http://www.w3.org/2000/svg';
-function sv(tag, attrs, ...kids) {
-  const n = document.createElementNS(SVGNS, tag);
-  // style عن طريق CSSOM، لأن سياسة الأمان (CSP) تمنع خاصية style المكتوبة كنص
-  for (const [k, v] of Object.entries(attrs || {})) { if (k === 'style') n.style.cssText = v; else n.setAttribute(k, v); }
-  for (const c of kids.flat()) if (c) n.append(c);
-  return n;
-}
-
-const STATS = ['STR', 'VIT', 'AGI', 'INT', 'SENSE'];
-const STAT_AR = EN ? { STR: 'Strength', VIT: 'Vitality', AGI: 'Agility', INT: 'Intellect', SENSE: 'Discipline' }
-  : { STR: 'قوة', VIT: 'حيوية', AGI: 'رشاقة', INT: 'ذكاء', SENSE: 'انضباط' };
-const RANK_XP = { E: 25, D: 45, C: 75, B: 120, A: 200, S: 350 };
-const DAY_BONUS_XP = 150;
-const MIT_XP = 50; // مكافأة مهمة اليوم الأهم
-const GRACE_DAYS = 3; // السلسلة تنكسر في رابع يوم فائت متتالي
-const DAILY_XP = 30; // خبرة المهمة اليومية الجديدة (الإضافة السريعة والقيمة الافتراضية)
-// خبرة كل دقيقة تركيز. دقائق التركيز في الإحصائيات تنحسب منها (focusMinutes)،
-// فلو تغيّرت، الدقائق المسجلة قبل التغيير تنحسب غلط.
-const FOCUS_XP_PER_MIN = 3;
-// خيارات مدة المؤقت بالدقائق (نفسها في قائمة timerMinutes داخل index.html)
-const TIMER_OPTS = [15, 25, 45, 60, 120, 180, 240];
-const WEEKDAYS = EN ? ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] : ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-const WEEKDAYS_SHORT = EN ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] : ['أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
-// أيام الأسبوع من الجمعة (للسجل وتقرير الجمعة)
-const WD_FROM_FRI = EN ? ['Fri', 'Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu'] : ['جمع', 'سبت', 'أحد', 'اثن', 'ثلا', 'أرب', 'خمي'];
-// الأسبوع يبدأ يوم الجمعة
-const WEEK_ORDER = [5, 6, 0, 1, 2, 3, 4];
-const weekStart = (iso) => addDays(iso, -((dateOf(iso).getDay() + 2) % 7));
-const MONTHS = EN ? ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] : ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
-// الرتبة ترتفع لما توصل المستوى المطلوب والسلسلة المطلوبة مع بعض
-const RANKS = [
-  { l: 'E', lv: 1, streak: 0 }, { l: 'D', lv: 5, streak: 3 }, { l: 'C', lv: 10, streak: 7 },
-  { l: 'B', lv: 15, streak: 14 }, { l: 'A', lv: 20, streak: 30 }, { l: 'S', lv: 30, streak: 60 },
-  { l: 'SS', lv: 40, streak: 90 }
-];
-const daysAr = (n) => EN ? n + (n === 1 ? ' day' : ' days') : n === 1 ? 'يوم' : n === 2 ? 'يومين' : n <= 10 ? n + ' أيام' : n + ' يوماً';
-const APP_NAME = L('نظام الصياد', 'Hunter System');
-
-// 20:00 تصير 8:00 م
-function fmt12(t) {
-  if (!isTime(t)) return String(t || '');
-  let [h, m] = t.split(':').map(Number);
-  const suf = h < 12 ? L('ص', 'AM') : L('م', 'PM');
-  h = h % 12 || 12;
-  return h + ':' + pad(m) + ' ' + suf;
-}
-function timeNode(t, cls) {
-  const [hm, suf] = fmt12(t).split(' ');
-  return el('span', { class: cls }, hm, el('small', { text: ' ' + (suf || '') }));
-}
-
-/* ============ 2. البيانات والحفظ ============ */
-const KEY = 'hunterSystem_v6';
-const THEME_KEY = 'hunterTheme_v6';
-const OLD_KEYS = ['soloLevelingState_v5_0', 'soloLevelingState_v4_1', 'soloLevelingStateV4_0', 'soloLevelingStateV3_1'];
-
-const store = {
-  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
-  set(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } },
-  del(k) { try { localStorage.removeItem(k); } catch (e) { /* تجاهل */ } }
-};
-
-function freshState() {
-  return {
-    version: 6,
-    name: '',
-    totalXp: 0,
-    stats: { STR: 10, VIT: 10, AGI: 10, INT: 10, SENSE: 10 },
-    fixed: [
-      { id: 'f_train', title: L('تمرين 30 دقيقة', 'Workout, 30 min'), stat: 'STR', xp: 30, time: '18:00', days: [] },
-      { id: 'f_study', title: L('مذاكرة بتركيز ساعة', 'Deep study, 1 hour'), stat: 'INT', xp: 35, time: '20:00', days: [] },
-      { id: 'f_sleep', title: L('النوم قبل 12', 'Sleep before midnight'), stat: 'VIT', xp: 25, time: '23:30', days: [] }
-    ],
-    gates: [],
-    log: {},            // 'YYYY-MM-DD': [ids of fixed tasks done that day]
-    completedDates: [], // أيام اكتملت فيها كل المهام الثابتة
-    restDays: [],
-    rewards: {},        // key -> { xp, stat, date }
-    xpByDate: {},       // 'YYYY-MM-DD' -> xp earned that day
-    bestStreak: 0,
-    focus: { minutes: 0, sessions: 0 },
-    achievements: [
-      { id: 'a30', name: L('المستيقظ', 'The Awakened'), days: 30 },
-      { id: 'a60', name: L('قائد الظلال', 'Shadow Commander'), days: 60 },
-      { id: 'a90', name: L('العاهل', 'The Monarch'), days: 90 }
-    ],
-    unlocked: [],
-    title: '',                  // id الإنجاز اللي صار لقبك
-    mit: { date: '', key: '' }, // مهمة اليوم الأهم: 'fixed:id' أو 'gate:id'
-    timer: { minutes: 25, phase: 0, status: 'idle', endAt: 0, remaining: 1500, link: '', auto: true },
-    sound: true,
-    lastBackup: 0,
-    startDate: todayIso()
-  };
-}
-
-// تنظيف أي بيانات (محفوظة أو مستوردة) بحيث ما يدخل إلا الشكل الصحيح
-function normalize(raw) {
-  const s = freshState();
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return s;
-  s.name = typeof raw.name === 'string' ? raw.name.slice(0, 18) : '';
-  s.totalXp = clampNum(raw.totalXp, 0, 1e9, 0);
-  if (raw.stats && typeof raw.stats === 'object') STATS.forEach((k) => { s.stats[k] = clampNum(raw.stats[k], 0, 1e6, 10); });
-  if (Array.isArray(raw.fixed)) {
-    s.fixed = raw.fixed.filter((q) => q && q.id && q.title).slice(0, 100).map((q) => ({
-      id: String(q.id).slice(0, 40), title: String(q.title).slice(0, 120),
-      stat: STATS.includes(q.stat) ? q.stat : 'SENSE', xp: clampNum(q.xp, 1, 1000, DAILY_XP),
-      time: isTime(q.time) ? q.time : '09:00', days: normDays(q.days)
-    }));
-  }
-  if (Array.isArray(raw.gates)) {
-    s.gates = raw.gates.filter((q) => q && q.id && q.title && isIso(q.date)).slice(0, 2000).map((q) => ({
-      id: String(q.id).slice(0, 40), title: String(q.title).slice(0, 120), date: q.date,
-      rank: RANK_XP[q.rank] ? q.rank : 'E', xp: clampNum(q.xp, 1, 5000, RANK_XP[q.rank] || 25),
-      time: isTime(q.time) ? q.time : '17:00', stat: STATS.includes(q.stat) ? q.stat : 'SENSE', done: Boolean(q.done),
-      subs: normSubs(q.subs)
-    }));
-  }
-  if (raw.log && typeof raw.log === 'object') {
-    for (const [d, ids] of Object.entries(raw.log)) if (isIso(d) && Array.isArray(ids)) s.log[d] = [...new Set(ids.map(String))];
-  }
-  s.completedDates = Array.isArray(raw.completedDates) ? [...new Set(raw.completedDates.filter(isIso))].sort() : [];
-  s.restDays = Array.isArray(raw.restDays) ? [...new Set(raw.restDays.filter(isIso))].sort() : [];
-  if (raw.rewards && typeof raw.rewards === 'object') {
-    for (const [k, r] of Object.entries(raw.rewards)) {
-      if (r && typeof r === 'object') s.rewards[String(k).slice(0, 80)] = { xp: clampNum(r.xp, 0, 1e6, 0), stat: STATS.includes(r.stat) ? r.stat : null, date: isIso(r.date) ? r.date : todayIso() };
-    }
-  }
-  if (raw.xpByDate && typeof raw.xpByDate === 'object') {
-    for (const [d, v] of Object.entries(raw.xpByDate)) if (isIso(d)) s.xpByDate[d] = clampNum(v, 0, 1e7, 0);
-  }
-  s.bestStreak = clampNum(raw.bestStreak, 0, 100000, 0);
-  if (raw.focus && typeof raw.focus === 'object') {
-    s.focus.minutes = clampNum(raw.focus.minutes, 0, 1e7, 0);
-    s.focus.sessions = clampNum(raw.focus.sessions, 0, 1e6, 0);
-  }
-  if (Array.isArray(raw.achievements)) {
-    s.achievements = raw.achievements.filter((a) => a && a.name).slice(0, 50).map((a) => ({
-      id: String(a.id || uid('a')).slice(0, 40), name: String(a.name).slice(0, 30), days: Math.round(clampNum(a.days, 1, 3650, 30))
-    }));
-  }
-  s.unlocked = Array.isArray(raw.unlocked) ? raw.unlocked.map(String).slice(0, 100) : [];
-  s.title = typeof raw.title === 'string' ? raw.title.slice(0, 40) : '';
-  if (raw.mit && typeof raw.mit === 'object' && isIso(raw.mit.date) && typeof raw.mit.key === 'string' && /^(fixed|gate):/.test(raw.mit.key)) {
-    s.mit = { date: raw.mit.date, key: raw.mit.key.slice(0, 60) };
-  }
-  if (raw.timer && typeof raw.timer === 'object') {
-    const t = raw.timer;
-    s.timer.minutes = TIMER_OPTS.includes(Number(t.minutes)) ? Number(t.minutes) : 25;
-    s.timer.phase = Math.round(clampNum(t.phase, 0, 6, 0));
-    s.timer.status = ['idle', 'running', 'paused'].includes(t.status) ? t.status : 'idle';
-    s.timer.endAt = clampNum(t.endAt, 0, 1e14, 0);
-    s.timer.remaining = clampNum(t.remaining, 0, 3600, s.timer.minutes * 60);
-    s.timer.link = typeof t.link === 'string' ? t.link.slice(0, 60) : '';
-    s.timer.auto = t.auto !== false;
-  }
-  s.sound = raw.sound !== false;
-  s.lastBackup = clampNum(raw.lastBackup, 0, 1e14, 0);
-  s.startDate = isIso(raw.startDate) ? raw.startDate : (s.completedDates[0] || todayIso());
-  return s;
-}
-
-// خطوات البوابة: [{ id, title, done }] بحد أقصى 20
-function normSubs(a) {
-  if (!Array.isArray(a)) return [];
-  return a.filter((x) => x && typeof x.title === 'string' && x.title.trim()).slice(0, 20).map((x) => ({
-    id: String(x.id || uid('s')).slice(0, 40), title: String(x.title).trim().slice(0, 100), done: Boolean(x.done)
-  }));
-}
-
-function normDays(a) {
-  if (!Array.isArray(a)) return [];
-  const u = [...new Set(a.map(Number).filter((n) => Number.isInteger(n) && n >= 0 && n <= 6))].sort((x, y) => x - y);
-  return u.length === 7 ? [] : u;
-}
-
-function loadState() {
-  const raw = store.get(KEY);
-  if (raw) { try { return normalize(JSON.parse(raw)); } catch (e) { /* يكمل للقديم */ } }
-  for (const k of OLD_KEYS) {
-    const old = store.get(k);
-    if (old) {
-      try { const s = migrateOld(JSON.parse(old)); s.migratedFrom = k; return s; } catch (e) { /* يجرب اللي بعده */ }
-    }
-  }
-  return freshState();
-}
-
-function save() {
-  const { migratedFrom, ...clean } = state;
-  store.set(KEY, JSON.stringify(clean));
-  // لو مسجل دخول: يرفع التغيير للسحابة (cloud.js)
-  try { if (typeof Cloud !== 'undefined') Cloud.changed(); } catch (e) { /* cloud.js لسا ما جهز */ }
-}
-
-/* ============ 3. نقل البيانات من النسخة القديمة (v5) ============ */
-// النسخة القديمة كانت تعدّ الأيام من 1 إلى 30 بدءاً من monthStartDate، هنا نحولها لتواريخ حقيقية
-function migrateOld(o) {
-  const s = freshState();
-  if (!o || typeof o !== 'object') return s;
-  const start = isIso(o.monthStartDate) ? o.monthStartDate : todayIso();
-  const dayIso = (n) => addDays(start, (Number(n) || 1) - 1);
-  const today = todayIso();
-
-  s.name = typeof o.hunterName === 'string' ? o.hunterName.slice(0, 18) : '';
-  let total = Number(o.totalXp);
-  if (!Number.isFinite(total) || total <= 0) {
-    total = 0; const lv = Number(o.level) || 1;
-    for (let l = 1; l < lv; l++) total += l * 100;
-    total += Number(o.xp) || 0;
-  }
-  s.totalXp = Math.max(0, Math.round(total));
-  if (o.stats && typeof o.stats === 'object') STATS.forEach((k) => { s.stats[k] = clampNum(o.stats[k], 0, 1e6, 10); });
-
-  if (Array.isArray(o.fixedQuests) && o.fixedQuests.length) {
-    s.fixed = o.fixedQuests.filter((q) => q && q.id && q.title).map((q) => ({
-      id: String(q.id), title: String(q.title).slice(0, 120), stat: STATS.includes(q.stat) ? q.stat : 'SENSE',
-      xp: clampNum(q.xp, 1, 1000, DAILY_XP), time: isTime(q.time) ? q.time : '09:00', days: normDays(q.days)
-    }));
-  }
-  if (Array.isArray(o.customQuests)) {
-    s.gates = o.customQuests.filter((q) => q && q.id && q.title).map((q) => ({
-      id: String(q.id), title: String(q.title).slice(0, 120), date: dayIso(q.day),
-      rank: RANK_XP[q.rank] ? q.rank : 'E', xp: clampNum(q.xp, 1, 5000, 25),
-      time: isTime(q.time) ? q.time : '17:00', stat: STATS.includes(q.stat) ? q.stat : 'SENSE', done: Boolean(q.done)
-    }));
-  }
-  if (o.progress && typeof o.progress === 'object') {
-    for (const [day, p] of Object.entries(o.progress)) {
-      const d = dayIso(day);
-      if (d <= today && p && Array.isArray(p.completedFixed) && p.completedFixed.length) s.log[d] = [...new Set(p.completedFixed.map(String))];
-    }
-  }
-  s.completedDates = Array.isArray(o.completedDates) ? [...new Set(o.completedDates.filter(isIso))].sort() : [];
-  s.restDays = Array.isArray(o.restDays) ? [...new Set(o.restDays.filter(isIso))].sort() : [];
-  if (o.streak && Array.isArray(o.streak.protectedDates)) s.restDays = [...new Set(s.restDays.concat(o.streak.protectedDates.filter(isIso)))].sort();
-  s.bestStreak = Math.max(0, Number(o.streak && o.streak.best) || 0, typeof o.streak === 'number' ? o.streak : 0);
-
-  // سجل المكافآت: نحول المفاتيح للتواريخ عشان إلغاء الإنجاز يرجّع الخبرة صح، ونبني سجل الخبرة اليومي
-  if (o.rewardLedger && typeof o.rewardLedger === 'object') {
-    for (const [k, r] of Object.entries(o.rewardLedger)) {
-      if (!r || typeof r !== 'object') continue;
-      const at = Number(r.at);
-      const d = Number.isFinite(at) && at > 0 ? isoOf(new Date(at)) : today;
-      const xp = clampNum(r.xp, 0, 1e6, 0);
-      s.xpByDate[d] = (s.xpByDate[d] || 0) + xp;
-      const stat = r.stats ? Object.keys(r.stats)[0] : null;
-      const mf = /^fixed:(\d+):(.+)$/.exec(k);
-      const mc = /^custom:(.+)$/.exec(k);
-      if (mf) s.rewards['fixed:' + dayIso(mf[1]) + ':' + mf[2]] = { xp, stat: STATS.includes(stat) ? stat : null, date: d };
-      else if (mc) s.rewards['gate:' + mc[1]] = { xp, stat: STATS.includes(stat) ? stat : null, date: d };
-    }
-  }
-  s.focus.minutes = clampNum(o.totalFocusMinutes, 0, 1e7, 0);
-  s.focus.sessions = clampNum(o.raidClears, 0, 1e6, 0);
-  s.startDate = s.completedDates[0] || Object.keys(s.log).sort()[0] || start;
-  return s;
-}
-
-/* ============ 4. المكافآت والمستوى ============ */
-function levelInfo(total) {
-  let level = 1, xp = Math.max(0, total), need = 100;
-  while (xp >= need) { xp -= need; level++; need = level * 100; }
-  return { level, xp, need };
-}
-
-function grant(key, xp, stat) {
-  if (state.rewards[key]) return false;
-  const before = levelInfo(state.totalXp).level;
-  const d = todayIso();
-  state.rewards[key] = { xp, stat: stat || null, date: d };
-  state.totalXp += xp;
-  state.xpByDate[d] = (state.xpByDate[d] || 0) + xp;
-  if (stat) state.stats[stat] = (state.stats[stat] || 0) + 1;
-  const after = levelInfo(state.totalXp).level;
-  if (after > before) setTimeout(() => celebrateLevel(after, before), 400);
-  return true;
-}
-
-function revoke(key) {
-  const r = state.rewards[key];
-  if (!r) return false;
-  state.totalXp = Math.max(0, state.totalXp - r.xp);
-  if (state.xpByDate[r.date]) state.xpByDate[r.date] = Math.max(0, state.xpByDate[r.date] - r.xp);
-  if (r.stat) state.stats[r.stat] = Math.max(0, (state.stats[r.stat] || 0) - 1);
-  delete state.rewards[key];
-  return true;
-}
-
-// دقائق التركيز من يوم from إلى يوم to (بدون to = يوم واحد)، من مكافآت التركيز المسجلة
-function focusMinutes(from, to) {
-  const end = to || from;
-  return Object.entries(state.rewards)
-    .filter(([k, r]) => k.startsWith('focus:') && r.date >= from && r.date <= end)
-    .reduce((a, [, r]) => a + r.xp / FOCUS_XP_PER_MIN, 0);
-}
-
-function rankFor(level, streak) {
-  let cur = RANKS[0], next = RANKS[1];
-  for (let i = 0; i < RANKS.length; i++) {
-    if (level >= RANKS[i].lv && streak >= RANKS[i].streak) { cur = RANKS[i]; next = RANKS[i + 1] || null; } else break;
-  }
-  return { cur, next };
-}
-
-/* ============ 5. الأيام والسلسلة ============ */
-const appliesOn = (q, iso) => !q.days.length || q.days.includes(dateOf(iso).getDay());
-const fixedFor = (iso) => state.fixed.filter((q) => appliesOn(q, iso));
-const isRest = (iso) => state.restDays.includes(iso);
-const isOff = (iso) => fixedFor(iso).length === 0;
-const doneIds = (iso) => state.log[iso] || [];
-
-function isComplete(iso) {
-  const app = fixedFor(iso);
-  if (!app.length) return false;
-  const d = doneIds(iso);
-  return app.every((q) => d.includes(q.id));
-}
-
-// يحدّث حالة اليوم: هل اكتمل؟ ويعطي أو يسحب مكافأة إكمال اليوم
-function syncDay(iso) {
-  const done = isComplete(iso);
-  const has = state.completedDates.includes(iso);
-  if (done && !has) {
-    state.completedDates.push(iso); state.completedDates.sort();
-    if (grant('bonus:' + iso, DAY_BONUS_XP, null)) {
-      toast(L('اكتملت مهام اليوم', 'All daily quests complete'), '+' + DAY_BONUS_XP + ' XP', 'gold');
-      sound('level');
-    }
-  } else if (!done && has) {
-    state.completedDates = state.completedDates.filter((d) => d !== iso);
-    revoke('bonus:' + iso);
-  }
-}
-
-// السلسلة: كل يوم مكتمل يزيدها 1. أيام الراحة والأيام بدون مهام محايدة.
-// الأيام الفائتة ما تزيدها، وتنكسر في رابع يوم فائت متتالي (3 أيام سماح).
-function streakInfo() {
-  const today = todayIso();
-  const done = new Set(state.completedDates);
-  const first = state.completedDates[0];
-  if (!first) return { streak: 0, graceLeft: GRACE_DAYS, tailMiss: 0 };
-  let cursor = done.has(today) ? today : addDays(today, -1);
-  let streak = 0, run = 0, tailMiss = 0, seenDone = false;
-  for (let i = 0; i < 4000 && cursor >= first; i++) {
-    if (done.has(cursor)) { streak++; run = 0; seenDone = true; }
-    else if (isRest(cursor) || isOff(cursor)) { /* محايد */ }
-    else {
-      run++;
-      if (!seenDone) tailMiss = run;
-      if (run > GRACE_DAYS) break;
-    }
-    cursor = addDays(cursor, -1);
-  }
-  if (tailMiss > GRACE_DAYS) return { streak: 0, graceLeft: 0, tailMiss };
-  return { streak, graceLeft: GRACE_DAYS - tailMiss, tailMiss };
-}
 
 /* ============ 6. المهام ============ */
 function todayTasks() {
@@ -437,23 +52,42 @@ function toggleTask(kind, id) {
 }
 
 async function deleteTask(kind, id) {
+  const q = kind === 'fixed' ? state.fixed.find((x) => x.id === id) : state.gates.find((x) => x.id === id);
+  if (!q) return;
+  const ask = kind === 'fixed'
+    ? L('تحذف المهمة اليومية «' + q.title + '»؟ خبرتك من الأيام السابقة تبقى.', 'Delete the daily quest "' + q.title + '"? XP from earlier days stays.')
+    : L('تحذف البوابة «' + q.title + '»؟', 'Delete the gate "' + q.title + '"?');
+  if (!(await confirmBox(ask))) return;
+  removeTask(kind, id);
+  commit();
+}
+
+// يشيل مهمة يومية أو بوابة، ويسحب خبرتها لو انحسبت اليوم. يستخدمه الحذف والتراجع عن الإضافة
+function removeTask(kind, id) {
+  snapshotPlans(); // لو عدّى منتصف الليل والتبويب كان نايم، نثبّت أمس قبل ما نغيّر المهام
   const t = todayIso();
   if (kind === 'fixed') {
-    const q = state.fixed.find((x) => x.id === id);
-    if (!q || !(await confirmBox(L('تحذف المهمة اليومية «' + q.title + '»؟ خبرتك من الأيام السابقة تبقى.', 'Delete the daily quest "' + q.title + '"? XP from earlier days stays.')))) return;
+    if (!state.fixed.some((x) => x.id === id)) return false;
     if (doneIds(t).includes(id)) { state.log[t] = doneIds(t).filter((x) => x !== id); revoke('fixed:' + t + ':' + id); }
     state.fixed = state.fixed.filter((x) => x.id !== id);
     syncDay(t);
   } else {
     const g = state.gates.find((x) => x.id === id);
-    if (!g || !(await confirmBox(L('تحذف البوابة «' + g.title + '»؟', 'Delete the gate "' + g.title + '"?')))) return;
+    if (!g) return false;
     if (g.done) revoke('gate:' + id);
     state.gates = state.gates.filter((x) => x.id !== id);
   }
   if (state.timer.link === kind + ':' + id) state.timer.link = '';
   if (state.mit.key === kind + ':' + id) state.mit = { date: '', key: '' };
   syncMit();
-  commit();
+  return true;
+}
+
+// أزرار تعديل/حذف جنب المهمة (تطلع في وضع «تعديل المهام»)
+function rowTools(kind, id, title) {
+  return el('span', { class: 'row-tools' },
+    el('button', { class: 'mini', onclick: () => openEdit(kind, id), 'aria-label': L('تعديل ', 'Edit ') + title, text: L('تعديل', 'Edit') }),
+    el('button', { class: 'mini danger', onclick: () => deleteTask(kind, id), 'aria-label': L('حذف ', 'Delete ') + title, text: L('حذف', 'Delete') }));
 }
 
 function openEdit(kind, id) {
@@ -479,6 +113,7 @@ function openEdit(kind, id) {
     if (dlg.returnValue !== 'save') return;
     const title = $('eTitle').value.trim().slice(0, 120);
     if (!title || !isTime($('eTime').value)) return;
+    snapshotPlans(); // نثبّت الأيام اللي خلصت قبل ما تتغيّر أيام المهمة
     q.title = title; q.time = $('eTime').value; q.stat = $('eStat').value;
     if (kind === 'fixed') {
       const days = [...box.querySelectorAll('input:checked')].map((i) => Number(i.value));
@@ -508,76 +143,7 @@ function toggleRest() {
   commit();
 }
 
-/* ============ 7. الإضافة السريعة (نفس صيغة بوت تيليجرام) ============ */
-const QUICK_STATS = {
-  STR: 'STR', 'قوة': 'STR', 'القوة': 'STR', 'رياضة': 'STR',
-  VIT: 'VIT', 'حيوية': 'VIT', 'الحيوية': 'VIT', 'صحة': 'VIT',
-  AGI: 'AGI', 'رشاقة': 'AGI', 'الرشاقة': 'AGI',
-  INT: 'INT', 'ذكاء': 'INT', 'الذكاء': 'INT', 'دراسة': 'INT',
-  SENSE: 'SENSE', 'انضباط': 'SENSE', 'الانضباط': 'SENSE',
-  strength: 'STR', fitness: 'STR', sport: 'STR', vitality: 'VIT', health: 'VIT', agility: 'AGI',
-  intellect: 'INT', intelligence: 'INT', study: 'INT', discipline: 'SENSE', sense: 'SENSE'
-};
-const END = '(?=$|[\\s!#،,.؛])';
-
-function parseQuick(raw) {
-  let s = String(raw || '').replace(/[٠-٩]/g, (c) => '٠١٢٣٤٥٦٧٨٩'.indexOf(c)).replace(/\s+/g, ' ').trim();
-  if (!s) return null;
-  const out = { kind: 'gate', rank: 'E', stat: 'SENSE', time: '', date: todayIso(), dateLabel: L('اليوم', 'today') };
-  let forceGate = false;
-
-  const pre = s.match(/^(مهمة|مهمه|بوابة|بوابه|task|quest|gate)\s*[:：]\s*/i);
-  if (pre) { if (/^(بواب|gate)/i.test(pre[1])) forceGate = true; s = s.slice(pre[0].length); }
-
-  let m = s.match(new RegExp('(?:الساعة|الساعه|@|\\bat)\\s*(\\d{1,2})(?:[:.٫](\\d{2}))?\\s*(صباحًا|صباحاً|صباحا|ص|مساءً|مساءا|مساء|م|ليلًا|ليلاً|ليلا|الليل|ظهرًا|ظهراً|ظهرا|الظهر|عصرًا|عصراً|عصرا|العصر|فجرًا|فجراً|فجرا|الفجر|a\\.?m\\.?|p\\.?m\\.?)?' + END, 'i'));
-  // 9pm أو 9:30 am بدون «at»
-  if (!m) m = s.match(new RegExp('(?:^|\\s)(\\d{1,2})(?::(\\d{2}))?\\s*(a\\.?m\\.?|p\\.?m\\.?)' + END, 'i'));
-  if (!m) m = s.match(new RegExp('(?:^|\\s)(\\d{1,2}):(\\d{2})()' + END));
-  if (m) {
-    let h = parseInt(m[1], 10); const min = m[2] ? parseInt(m[2], 10) : 0; const suf = (m[3] || '').toLowerCase();
-    const pm = /^(مساء|م$|ليل|الليل|عصر|العصر|p)/.test(suf) || (/^(ظهر|الظهر)/.test(suf) && h < 11);
-    const am = /^(صباح|ص$|فجر|الفجر|a)/.test(suf);
-    if (pm && h < 12) h += 12;
-    if (am && h === 12) h = 0;
-    if (h >= 0 && h <= 23 && min >= 0 && min <= 59) { out.time = pad(h) + ':' + pad(min); s = s.replace(m[0], ' '); }
-  }
-
-  m = s.match(new RegExp('(?:!|رتبة\\s*|\\brank\\s+)([EDCBAS])' + END, 'i'));
-  if (m) { out.rank = m[1].toUpperCase(); forceGate = true; s = s.replace(m[0], ' '); }
-
-  m = s.match(/#([^\s#!]+)/);
-  if (m) { const k = QUICK_STATS[m[1]] || QUICK_STATS[m[1].toUpperCase()] || QUICK_STATS[m[1].toLowerCase()]; if (k) { out.stat = k; s = s.replace(m[0], ' '); } }
-
-  m = s.match(new RegExp('(?:^|\\s)(بعد بكرة|بعد بكره|بعد غد|day after tomorrow)' + END, 'i'));
-  if (m) { out.date = addDays(todayIso(), 2); out.dateLabel = L('بعد بكرة', 'day after tomorrow'); s = s.replace(m[0], ' '); }
-  else if ((m = s.match(new RegExp('(?:^|\\s)(بكرة|بكره|غدًا|غداً|غدا|الغد|tomorrow|tmrw)' + END, 'i')))) { out.date = addDays(todayIso(), 1); out.dateLabel = L('بكرة', 'tomorrow'); s = s.replace(m[0], ' '); }
-  else if ((m = s.match(new RegExp('(?:^|\\s)(?:يوم|day)\\s*(\\d{1,2})(?:st|nd|rd|th)?' + END, 'i')))) {
-    const n = parseInt(m[1], 10);
-    if (n >= 1 && n <= 31) {
-      const now = new Date();
-      let d = new Date(now.getFullYear(), now.getMonth(), n);
-      if (isoOf(d) < todayIso()) d = new Date(now.getFullYear(), now.getMonth() + 1, n);
-      out.date = isoOf(d); out.dateLabel = d.getDate() + ' ' + MONTHS[d.getMonth()];
-    }
-    s = s.replace(m[0], ' ');
-  } else if ((m = s.match(new RegExp('(?:^|\\s)(?:اليوم|today)' + END, 'i')))) s = s.replace(m[0], ' ');
-
-  m = s.match(new RegExp('(?:^|\\s)(يوميًا|يومياً|يوميا|يومي|كل يوم|daily|every ?day)' + END, 'i'));
-  if (m && !forceGate) { out.kind = 'fixed'; s = s.replace(m[0], ' '); }
-
-  out.title = s.replace(/\s+/g, ' ').replace(/^[\s،,.:؛-]+|[\s،,.:؛-]+$/g, '').trim().slice(0, 120);
-  if (!out.title) return null;
-  if (!out.time) out.time = out.kind === 'fixed' ? '09:00' : '17:00';
-  out.xp = out.kind === 'fixed' ? DAILY_XP : RANK_XP[out.rank];
-  return out;
-}
-
-function describeQuick(p) {
-  if (!p) return '';
-  if (EN) return (p.kind === 'fixed' ? 'Daily quest' : 'Gate ' + p.rank + ', ' + p.dateLabel) + ', at ' + fmt12(p.time) + ', +' + p.xp + ' XP, ' + STAT_AR[p.stat] + ': ' + p.title;
-  return (p.kind === 'fixed' ? 'مهمة يومية' : 'بوابة ' + p.rank + '، ' + p.dateLabel) + '، الساعة ' + fmt12(p.time) + '، +' + p.xp + ' XP، ' + STAT_AR[p.stat] + ': ' + p.title;
-}
-
+/* ============ 7. الإضافة السريعة: من الحقل للمهام (المحلل parseQuick في core.js) ============ */
 // الاختيار الظاهر [مرة وحدة / كل يوم] يغلب على الكلمات المكتوبة
 function readQuick() {
   const p = parseQuick($('quickInput').value);
@@ -588,6 +154,7 @@ function readQuick() {
 }
 
 function addParsed(p) {
+  snapshotPlans(); // مهمة يومية جديدة ما تنضاف لأمس
   const id = uid(p.kind === 'fixed' ? 'f_' : 'g_');
   if (p.kind === 'fixed') state.fixed.push({ id, title: p.title, stat: p.stat, xp: DAILY_XP, time: p.time, days: [] });
   else state.gates.push({ id, title: p.title, date: p.date, rank: p.rank, xp: p.xp, time: p.time, stat: p.stat, done: false, subs: [] });
@@ -689,7 +256,7 @@ function phaseDone() {
 
 /* ============ 9. الإنجازات ============ */
 function checkAchievements(streakNow) {
-  const reach = Math.max(streakNow, state.bestStreak);
+  const reach = Math.max(streakNow, longestStreak());
   state.achievements.forEach((a) => {
     if (reach >= a.days && !state.unlocked.includes(a.id)) {
       state.unlocked.push(a.id);
@@ -716,13 +283,17 @@ async function deleteAchievement(id) {
 }
 
 /* ============ 10. النسخ الاحتياطي ============ */
-function exportBackup(quiet) {
-  const { migratedFrom, ...clean } = state;
-  clean.lastBackup = Date.now();
+// ينزّل أي نسخة من البيانات كملف نسخة احتياطية. ما يغيّر state ولا يحرّك المزامنة
+function downloadState(s, name) {
+  const { migratedFrom, ...clean } = s;
   const blob = new Blob([JSON.stringify({ app: 'hunter-system', version: 6, exportedAt: new Date().toISOString(), state: clean }, null, 2)], { type: 'application/json' });
-  const a = el('a', { href: URL.createObjectURL(blob), download: 'hunter-backup-' + todayIso() + '.json' });
+  const a = el('a', { href: URL.createObjectURL(blob), download: name });
   document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+function exportBackup(quiet) {
+  downloadState({ ...state, lastBackup: Date.now() }, 'hunter-backup-' + todayIso() + '.json');
   state.lastBackup = Date.now();
   commit();
   if (!quiet) toast(L('حُفظت النسخة الاحتياطية', 'Backup saved'), L('احفظ الملف في مكان آمن', 'Keep the file somewhere safe'), 'gold');
@@ -731,14 +302,29 @@ function exportBackup(quiet) {
 // يمسح كل شي ويبدأ من جديد، وقبلها ينزّل نسخة احتياطية تلقائياً
 async function resetAll() {
   if (!(await confirmBox(L('بيمسح كل بياناتك: المستوى والمهام والسلسلة والإنجازات، ويبدأ النظام كأنك توك بادي.\n\nقبل المسح بنزّل لك نسخة احتياطية تلقائياً، عشان لو غيرت رأيك تستعيدها.', 'This erases all your data: level, quests, streak and achievements, and the System starts fresh.\n\nA backup downloads automatically first, so you can restore it if you change your mind.'), L('امسح وابدأ من جديد', 'Erase and start over')))) return;
-  exportBackup(true);
+  // لو ما عندنا نسخة مؤكدة، ما نمسح شي
+  if (!(await ensureRecoveryCopy(state, 'reset', 'hunter-backup-' + todayIso() + '.json'))) {
+    toast(L('ما مسحنا شي', 'Nothing was erased'), L('ما عندنا نسخة احتياطية مؤكدة. فضّي مساحة بالمتصفح أو احفظ ملف النسخة وحاول مرة ثانية.', "There's no confirmed backup. Free some browser space or save the backup file, then try again."), 'warn');
+    return;
+  }
   clearInterval(timerTick);
   state = freshState();
-  store.del('hunterNameAsked_v6');
+  store.del(STORE_KEYS.nameAsked);
   editing = false;
   commit(); runTimer(); setView('today');
   toast(L('بدأت من الصفر', 'Started from zero'), L('نزّلنا نسخة من بياناتك القديمة', 'A copy of your old data was downloaded'), 'gold');
-  setTimeout(() => { store.set('hunterNameAsked_v6', '1'); openNameDialog(true); }, 900);
+  setTimeout(() => { store.set(STORE_KEYS.nameAsked, '1'); openNameDialog(true); }, 900);
+}
+
+/**
+ * قبل أي حذف: نسخة نقدر نرجع لها. لو انحفظت في المتصفح وانقرأت = مؤكدة.
+ * لو بس نزل ملف، ما نقدر نعرف إن المتصفح حفظه فعلاً، فنسألك تتأكد بنفسك قبل ما نكمل.
+ */
+async function ensureRecoveryCopy(data, side, fileName) {
+  const r = saveRecoveryCopy(data, side, () => downloadState({ ...data, lastBackup: Date.now() }, fileName));
+  if (r === 'saved') return true;
+  if (r === 'failed') return false;
+  return confirmBox(L('ما قدرنا نحفظ نسخة في المتصفح، فنزّلنا ملف «' + fileName + '».\n\nتأكد إنه موجود في التنزيلات قبل ما نكمل، لأن البيانات بتنحذف بعدها.', "We couldn't keep a copy in the browser, so we downloaded \u201c" + fileName + "\u201d.\n\nCheck it's in your downloads before we continue, because the data gets deleted next."), L('الملف موجود، كمّل', "The file's there, continue"));
 }
 
 function importBackup(file) {
@@ -850,14 +436,20 @@ let view = 'today';
 const theme = () => document.documentElement.dataset.theme;
 
 function commit() {
+  snapshotPlans();
   const si = streakInfo();
-  state.bestStreak = Math.max(state.bestStreak, si.streak);
+  state.bestStreak = longestStreak(); // يبقى محفوظ للنسخ الاحتياطية، والقراءة من longestStreak()
   checkAchievements(si.streak);
   save();
   render();
 }
 
 function render() {
+  // السلسلة وأطول سلسلة تنحسب مرة وحدة لكل رسم (بند 13)
+  calcMemo = {};
+  try { renderNow(); } finally { calcMemo = null; }
+}
+function renderNow() {
   const si = streakInfo();
   renderTop();
   if (view === 'today') { renderHero(si); renderStatCards(si); renderTasks(); renderTimer(); renderLinkOptions(); renderAchMini(si); renderHeat(); }
@@ -890,7 +482,7 @@ function nameButton(cls) {
 function renderHero(si) {
   const hero = $('hero');
   const lv = levelInfo(state.totalXp);
-  const reach = Math.max(si.streak, state.bestStreak);
+  const reach = longestStreak();
   const { cur, next } = rankFor(lv.level, reach);
   const anime = theme() === 'anime';
   const ttl = activeTitle();
@@ -923,7 +515,6 @@ function renderHero(si) {
   const streakLbl = si.streak === 1 ? L('يوم متتالي', 'day in a row') : L('يوماً متتالياً', 'days in a row');
 
   hero.className = anime ? 'hero-anime' : 'hero-ink';
-  renderMe();
   if (anime) {
     // نافذة [الحالة]: السلسلة وأيام السماح والقدرات
     const maxStat = Math.max(30, ...STATS.map((k) => state.stats[k] || 0));
@@ -1030,7 +621,7 @@ function taskRow(t) {
       t.late ? el('span', { class: 'late', text: L('متأخرة', 'Overdue') }) : null,
       el('span', { class: 'lead', 'aria-hidden': 'true' }),
       timeNode(t.time, 'time'),
-      el('span', { class: 'xpv', dir: 'ltr', 'aria-hidden': 'true', text: '+' + t.xp }),
+      el('span', { class: 'xpv', dir: 'ltr', 'aria-hidden': 'true', text: '+' + (t.xp + (isMit ? MIT_XP : 0)) }),
       el('span', { class: 'ctr', dir: 'ltr', text: '[' + (t.done ? 1 : 0) + '/1]' })].filter(Boolean));
   } else {
     btn.append(
@@ -1041,7 +632,7 @@ function taskRow(t) {
         t.kind === 'gate' ? el('span', { class: 'rank', text: L('بوابة ', 'Gate ') + t.rank }) : null,
         statTag, mitTag,
         t.late ? el('span', { class: 'late', text: L('متأخرة', 'Overdue') }) : null),
-      el('span', { class: 'xp', dir: 'ltr', text: '+' + t.xp }));
+      el('span', { class: 'xp', dir: 'ltr', text: '+' + (t.xp + (isMit ? MIT_XP : 0)) }));
   }
   const star = el('button', {
     class: 'mit-btn' + (isMit ? ' on' : ''), 'aria-pressed': String(isMit),
@@ -1054,11 +645,7 @@ function taskRow(t) {
     li.classList.add('swept');
     li.append(el('span', { class: 'xpf', 'aria-hidden': 'true', dir: 'ltr', text: '+' + (t.xp + (isMit ? MIT_XP : 0)) }));
   }
-  if (editing) {
-    li.append(el('span', { class: 'row-tools' },
-      el('button', { class: 'mini', onclick: () => openEdit(t.kind, t.id), 'aria-label': L('تعديل ', 'Edit ') + t.title, text: L('تعديل', 'Edit') }),
-      el('button', { class: 'mini danger', onclick: () => deleteTask(t.kind, t.id), 'aria-label': L('حذف ', 'Delete ') + t.title, text: L('حذف', 'Delete') })));
-  }
+  if (editing) li.append(rowTools(t.kind, t.id, t.title));
   return li;
 }
 
@@ -1080,7 +667,6 @@ function renderTasks() {
   $('editBtn').setAttribute('aria-pressed', String(editing));
   $('editLabel').textContent = editing ? L('خلصت التعديل', 'Done editing') : L('تعديل المهام', 'Edit quests');
   list.replaceChildren();
-  const byTime = (a, b) => a.time.localeCompare(b.time);
 
   if (isRest(t)) {
     list.append(restCard());
@@ -1113,9 +699,7 @@ function renderTasks() {
         el('span', { class: 'up-date', text: WEEKDAYS_SHORT[d.getDay()] + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()] }),
         el('span', { class: 'up-title', text: g.title }),
         el('span', { class: 'up-rank', text: L('رتبة ' + g.rank + '، الساعة ', 'Rank ' + g.rank + ', at ') + fmt12(g.time) }),
-        editing ? el('span', { class: 'row-tools' },
-          el('button', { class: 'mini', onclick: () => openEdit('gate', g.id), 'aria-label': L('تعديل ', 'Edit ') + g.title, text: L('تعديل', 'Edit') }),
-          el('button', { class: 'mini danger', onclick: () => deleteTask('gate', g.id), 'aria-label': L('حذف ', 'Delete ') + g.title, text: L('حذف', 'Delete') })) : null);
+        editing ? rowTools('gate', g.id, g.title) : null);
     })));
   }
   renderBonusLine(t);
@@ -1181,7 +765,7 @@ function achRow(a, reach, withTools) {
 }
 
 function renderAchMini(si) {
-  const reach = Math.max(si.streak, state.bestStreak);
+  const reach = longestStreak();
   const list = state.achievements.slice().sort((a, b) => a.days - b.days);
   const isGot = (a) => reach >= a.days || state.unlocked.includes(a.id);
   // المفتوحة (عشان تختار لقبك منها) وبعدها الجاية
@@ -1193,7 +777,7 @@ function renderAchMini(si) {
 }
 
 function renderAchList(si) {
-  const reach = Math.max(si.streak, state.bestStreak);
+  const reach = longestStreak();
   const list = state.achievements.slice().sort((a, b) => a.days - b.days);
   $('achList').replaceChildren(...(list.length ? list.map((a) => achRow(a, reach, true)) : [el('li', { class: 'empty', text: L('ما عندك إنجازات للحين. أضف أول واحد تحت.', 'No achievements yet. Add your first one below.') })]));
 }
@@ -1221,9 +805,7 @@ function renderHeat() {
   $('heatTitle').textContent = fromStart ? L('سجلّك من أول يوم', 'Your record since day one') : L('آخر 12 أسبوعاً', 'Last 12 weeks');
   WD_FROM_FRI.forEach((d) => box.append(el('span', { class: 'wd', 'aria-hidden': 'true', text: d })));
   let total = 0, active = 0;
-  // الأنمي: نعرض الأسابيع لين هذا الأسبوع بس (بدون صفوف المستقبل الفاضية)
-  const weeks = theme() === 'anime' ? Math.min(12, Math.round((dateOf(thisWeek) - dateOf(start)) / 864e5 / 7) + 1) : 12;
-  for (let i = 0; i < weeks * 7; i++) {
+  for (let i = 0; i < 84; i++) {
     const iso = addDays(start, i);
     if (iso > today) { box.append(el('span', { class: 'cell future', title: iso }, el('i'))); continue; }
     if (iso < state.startDate) { box.append(el('span', { class: 'cell before', title: iso + L('، قبل ما تبدأ', ', before you started') }, el('i'))); continue; }
@@ -1251,12 +833,13 @@ function commitStats() {
     counted++;
     if (done.has(d)) full++;
   }
-  return { counted, full, best: Math.max(state.bestStreak, streakInfo().streak) };
+  return { counted, full, best: longestStreak() };
 }
 function renderHeatStats() {
   const { counted, full, best } = commitStats();
   const items = [
-    ['hs-streak', L('أطول سلسلة', 'Longest streak'), best ? daysAr(best) : '0'],
+    // الرقم يطلع دايماً (daysAr تكتب «يوم» و«يومين» بدون رقم)
+    ['hs-streak', L('أطول سلسلة', 'Longest streak'), best ? L(best + (best >= 3 && best <= 10 ? ' أيام' : ' يوم'), best + (best === 1 ? ' day' : ' days')) : '0'],
     ['hs-days', L('أيام مكتملة من البداية', 'Days completed since start'), full + L(' من ', ' of ') + counted],
     ['hs-rate', L('نسبة الالتزام', 'Commitment rate'), counted ? Math.round(full / counted * 100) + '%' : '—']
   ];
@@ -1271,7 +854,7 @@ function renderStats(si) {
   const nums = [
     [doneCount.toLocaleString('en'), L('مهمة أنجزتها', 'quests completed')],
     [state.focus.minutes.toLocaleString('en'), L('دقيقة تركيز', 'focus minutes')],
-    [String(Math.max(state.bestStreak, si.streak)), L('أطول سلسلة', 'longest streak')],
+    [String(longestStreak()), L('أطول سلسلة', 'longest streak')],
     [rate + '%', L('إنجازك في آخر 30 يوماً', 'completion, last 30 days')]
   ];
   $('numbers').replaceChildren(...nums.map(([n, l]) => el('div', { class: 'num' }, el('b', { text: n }), el('span', { text: l }))));
@@ -1353,6 +936,17 @@ function setView(v) {
 }
 
 /* ============ 13. التشغيل ============ */
+// اليوم اللي الصفحة معروضة عليه. لو تغيّر (منتصف الليل، أو رجعت للصفحة بعد ما كانت نايمة):
+// commit يثبّت لقطات الأيام اللي خلصت ويرسم اليوم الجديد. يستخدمه مؤقت الثانية ومعالج الرجوع للصفحة.
+let shownDay = null;
+function checkDay() {
+  const t = todayIso();
+  if (shownDay === null || t === shownDay) { shownDay = t; return false; }
+  shownDay = t;
+  commit();
+  return true;
+}
+
 function bind() {
   document.querySelectorAll('.tab').forEach((b) => b.addEventListener('click', () => setView(b.dataset.view)));
   document.addEventListener('click', (e) => { const g = e.target.closest('[data-goto]'); if (g) setView(g.dataset.goto); });
@@ -1395,6 +989,7 @@ function bind() {
 
   $('timerStart').addEventListener('click', timerToggle);
   $('timerReset').addEventListener('click', timerReset);
+  $('timerMinutes').replaceChildren(...TIMER_OPTS.map((m) => el('option', { value: m, text: timerLabel(m) })));
   $('timerMinutes').addEventListener('change', (e) => { if (state.timer.status !== 'idle') return; state.timer.minutes = Number(e.target.value); state.timer.phase = 0; state.timer.remaining = timerTotal(); commit(); });
   $('timerLink').addEventListener('change', (e) => { state.timer.link = e.target.value; save(); });
   $('timerAuto').addEventListener('change', (e) => { state.timer.auto = e.target.checked; save(); });
@@ -1406,22 +1001,23 @@ function bind() {
   });
 
   // كل ثانية: العداد التنازلي، وكل دقيقة: خط "الآن"، وعند منتصف الليل: يوم جديد
-  let lastMinute = new Date().getMinutes(), lastDay = todayIso();
+  let lastMinute = new Date().getMinutes();
+  shownDay = todayIso();
   setInterval(() => {
     if (view === 'today') updateSubtitle();
     const n = new Date();
-    if (todayIso() !== lastDay) { lastDay = todayIso(); commit(); return; }
+    if (checkDay()) return;
     if (n.getMinutes() !== lastMinute) { lastMinute = n.getMinutes(); if (view === 'today' && theme() === 'ink') renderTasks(); }
   }, 1000);
 
+  // بوت واحد للكل (Supabase Edge Function). اسمه في config.js
   $('tgBtn').addEventListener('click', () => {
-    $('tgUrl').textContent = location.origin + location.pathname;
+    const bot = String((window.HUNTER_CONFIG || {}).telegramBot || '').replace(/^@/, '').trim();
+    const ok = /^\w{5,32}$/.test(bot);
+    $('tgReady').hidden = !ok;
+    $('tgNotReady').hidden = ok;
+    if (ok) $('tgOpen').href = 'https://t.me/' + bot;
     $('tgDialog').showModal();
-  });
-  $('tgCopy').addEventListener('click', async () => {
-    const txt = $('tgUrl').textContent;
-    try { await navigator.clipboard.writeText(txt); toast(L('نُسخ الرابط', 'Link copied'), ''); }
-    catch (e) { const r = document.createRange(); r.selectNodeContents($('tgUrl')); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); toast(L('حدد الرابط وانسخه بـ Ctrl+C', 'Select the link and copy it with Ctrl+C'), '', 'warn'); }
   });
   $('tgTry').addEventListener('click', () => {
     const txt = $('tgTest').value.trim();
@@ -1433,7 +1029,6 @@ function bind() {
   bindExtras();
   bindMore();
   bindLook();
-  bindMe();
   bindTopbar();
   window.addEventListener('hashchange', importFromHash);
   window.addEventListener('storage', (e) => { if (e.key === KEY && e.newValue) { try { state = normalize(JSON.parse(e.newValue)); render(); runTimer(); } catch (err) { /* تجاهل */ } } });
@@ -1442,8 +1037,8 @@ function bind() {
 // بعد الدخول: يضيف مهمة البوت لو فيه، ويسأل عن الاسم أول مرة
 function afterEntry() {
   importFromHash();
-  if (!state.name && !store.get('hunterNameAsked_v6') && !location.hash.startsWith('#add=')) {
-    store.set('hunterNameAsked_v6', '1');
+  if (!state.name && !store.get(STORE_KEYS.nameAsked) && !location.hash.startsWith('#add=')) {
+    store.set(STORE_KEYS.nameAsked, '1');
     setTimeout(() => { if (!document.querySelector('dialog[open]')) openNameDialog(true); }, 900);
   }
   // تقرير النظام: أول فتح في اليوم، وأول فتح بعد 8 م، ويوم الجمعة ملخص الأسبوع
@@ -1454,7 +1049,6 @@ function afterEntry() {
 function crownIcon() { return sv('svg', { viewBox: '0 0 24 24', class: 'crown', 'aria-hidden': 'true' }, sv('path', { d: 'M3 18h18l-2-10-5 4-2-7-2 7-5-4z' })); }
 function starIcon() { return sv('svg', { viewBox: '0 0 24 24', 'aria-hidden': 'true' }, sv('path', { d: 'm12 2.8 2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3L2.9 9.5l6.3-.9z' })); }
 function arrowIcon() { return sv('svg', { viewBox: '0 0 24 24', class: 'sc-go', 'aria-hidden': 'true' }, sv('path', { d: 'M17 17 7 7' }), sv('path', { d: 'M7 15V7h8' })); }
-const byTimeAsc = (a, b) => a.time.localeCompare(b.time);
 // يعزل النص الإنجليزي (مثل +50 XP) عشان ما ينقلب داخل الجملة العربية
 const ltr = (txt) => '\u2066' + txt + '\u2069';
 
@@ -1462,7 +1056,7 @@ const ltr = (txt) => '\u2066' + txt + '\u2069';
 function activeTitle() {
   const a = state.achievements.find((x) => x.id === state.title);
   if (!a) return null;
-  return state.unlocked.includes(a.id) || Math.max(state.bestStreak, streakInfo().streak) >= a.days ? a : null;
+  return state.unlocked.includes(a.id) || longestStreak() >= a.days ? a : null;
 }
 function setTitle(id) {
   const a = state.achievements.find((x) => x.id === id);
@@ -1498,7 +1092,7 @@ function syncMit() {
 // --- البطاقات الأربع ---
 function nextTask() {
   const { fixed, gates } = todayTasks();
-  const open = fixed.concat(gates).filter((t) => !t.done).sort(byTimeAsc);
+  const open = fixed.concat(gates).filter((t) => !t.done).sort(byTime);
   const n = new Date();
   const now = pad(n.getHours()) + ':' + pad(n.getMinutes());
   return open.find((t) => !t.late && t.time >= now) || open[0] || null;
@@ -1549,7 +1143,7 @@ function cardGo(go) {
 }
 
 // --- تقرير النظام ---
-const BRIEF_KEY = 'hunterBrief_v6';
+const BRIEF_KEY = STORE_KEYS.brief;
 function briefSeen() { try { return JSON.parse(store.get(BRIEF_KEY)) || {}; } catch (e) { return {}; } }
 // auto = عند الفتح (يطلع مرة وحدة)، وبدونها = زر «تقرير اليوم»
 function briefKind(auto) {
@@ -1575,7 +1169,7 @@ function briefData(kind) {
   const t = todayIso();
   const { fixed, gates } = todayTasks();
   const all = fixed.concat(gates);
-  const open = all.filter((x) => !x.done).sort(byTimeAsc);
+  const open = all.filter((x) => !x.done).sort(byTime);
   const nt = nextTask();
   const mk = mitKey();
   const mitT = mk ? all.find((x) => x.kind + ':' + x.id === mk) : null;
@@ -1604,21 +1198,19 @@ function briefData(kind) {
       lead([L('هذا أول أسبوع لك في النظام. الجمعة الجاية بيطلع لك هنا ملخص أسبوعك: الأيام المكتملة والخبرة والتركيز.', "This is your first week in the System. Next Friday you'll see your weekly summary here: completed days, XP and focus.")]);
     } else {
       const doneSet = new Set(state.completedDates);
-      const counted = range.filter((d) => d >= state.startDate && !isRest(d) && !isOff(d));
-      const full = counted.filter((d) => doneSet.has(d)).length;
-      const xp = range.reduce((a, d) => a + (state.xpByDate[d] || 0), 0);
-      const prev = Array.from({ length: 7 }, (_, i) => addDays(ws, i - 7)).reduce((a, d) => a + (state.xpByDate[d] || 0), 0);
-      const focusMin = focusMinutes(ws, we);
+      const wk = weekSummary(ws);
+      const { full, xp, focus: focusMin } = wk;
+      const prev = weekSummary(addDays(ws, -7)).xp;
       let best = null;
       range.forEach((d) => { const r = dayRatio(d); if (r >= 0 && (!best || r > best.r || (r === best.r && (state.xpByDate[d] || 0) > best.xp))) best = { d, r, xp: state.xpByDate[d] || 0 }; });
       lead(EN
-        ? ['Your week is over, Hunter. You completed ', b(full + ' of ' + counted.length), ' days and earned ', b(ltr(xp + ' XP')), '.']
-        : ['انتهى أسبوعك أيها الصياد. أكملت ', b(full + ' من ' + counted.length), ' أيام، وجمعت ', b(ltr(xp + ' XP')), '.']);
+        ? ['Your week is over, Hunter. You completed ', b(full + ' of ' + wk.counted), ' days and earned ', b(ltr(xp + ' XP')), '.']
+        : ['انتهى أسبوعك أيها الصياد. أكملت ', b(full + ' من ' + wk.counted), ' أيام، وجمعت ', b(ltr(xp + ' XP')), '.']);
       nodes.push(el('div', { class: 'brief-week', role: 'img', 'aria-label': L('أيام الأسبوع: ' + full + ' مكتملة', 'Days of the week: ' + full + ' completed') },
         ...range.map((d, i) => el('span', { class: 'bw-day ' + (doneSet.has(d) ? 'done' : isRest(d) ? 'rest' : d < state.startDate || isOff(d) ? 'off' : 'miss') }, el('i'), WD_FROM_FRI[i]))));
       const h = Math.floor(focusMin / 60), m = Math.round(focusMin % 60);
       grid([
-        [L('أيام مكتملة', 'Days completed'), full + ' / ' + counted.length],
+        [L('أيام مكتملة', 'Days completed'), full + ' / ' + wk.counted],
         [L('خبرة الأسبوع', 'Weekly XP'), ltr('+' + xp + ' XP')],
         [L('وقت التركيز', 'Focus time'), h ? L(h + ' س ' + m + ' د', h + 'h ' + m + 'm') : L(m + ' دقيقة', m + ' min')],
         [L('أفضل يوم', 'Best day'), best ? WEEKDAYS[dateOf(best.d).getDay()] + ' · ' + Math.round(best.r * 100) + '%' : '—']
@@ -1727,7 +1319,7 @@ function bindExtras() {
     q.scrollIntoView({ block: 'center', behavior: reducedMotion() ? 'auto' : 'smooth' });
   });
   // لو رجعت للصفحة بعد 8 م أو بيوم جديد، يطلع التقرير
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') setTimeout(maybeBrief, 600); });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { checkDay(); setTimeout(maybeBrief, 600); } });
 }
 
 /* ============ 15. إضافات 26 أكتوبر ============ */
@@ -1746,21 +1338,7 @@ function undoAdd(kind, id) {
   return {
     label: L('تراجع', 'Undo'),
     run: () => {
-      const t = todayIso();
-      if (kind === 'fixed') {
-        if (!state.fixed.some((x) => x.id === id)) return;
-        if (doneIds(t).includes(id)) { state.log[t] = doneIds(t).filter((x) => x !== id); revoke('fixed:' + t + ':' + id); }
-        state.fixed = state.fixed.filter((x) => x.id !== id);
-        syncDay(t);
-      } else {
-        const g = state.gates.find((x) => x.id === id);
-        if (!g) return;
-        if (g.done) revoke('gate:' + id);
-        state.gates = state.gates.filter((x) => x.id !== id);
-      }
-      if (state.timer.link === kind + ':' + id) state.timer.link = '';
-      if (state.mit.key === kind + ':' + id) state.mit = { date: '', key: '' };
-      syncMit();
+      if (!removeTask(kind, id)) return;
       commit();
       toast(L('شلتها من القائمة', 'Removed from the list'), '');
     }
@@ -1931,16 +1509,10 @@ function quickChips(p) {
 function renderWeek() {
   const ws = addDays(weekStart(todayIso()), -7);
   const range = Array.from({ length: 7 }, (_, i) => addDays(ws, i));
-  const prevRange = Array.from({ length: 7 }, (_, i) => addDays(ws, i - 7));
-  const doneSet = new Set(state.completedDates);
-  const counted = (rg) => rg.filter((d) => d >= state.startDate && !isRest(d) && !isOff(d));
-  const fullOf = (rg) => counted(rg).filter((d) => doneSet.has(d)).length;
-  const xpOf = (rg) => rg.reduce((a, d) => a + (state.xpByDate[d] || 0), 0);
-  const focusOn = (d) => focusMinutes(d);
-  const mins = range.map(focusOn);
-  const focusTot = mins.reduce((a, b) => a + b, 0);
-  const prevFocus = prevRange.map(focusOn).reduce((a, b) => a + b, 0);
-  const xp = xpOf(range), pxp = xpOf(prevRange);
+  const cur = weekSummary(ws), prev = weekSummary(addDays(ws, -7));
+  const mins = range.map((d) => focusMinutes(d));
+  const focusTot = cur.focus, prevFocus = prev.focus;
+  const xp = cur.xp, pxp = prev.xp;
   let best = null;
   range.forEach((d) => { const x = state.xpByDate[d] || 0; if (x > 0 && (!best || x > best.x)) best = { d, x }; });
   const hm = (m) => { m = Math.round(m); return m >= 60 ? Math.floor(m / 60) + L('س ', 'h ') + (m % 60) + L('د', 'm') : m + L(' د', ' min'); };
@@ -1948,7 +1520,7 @@ function renderWeek() {
   const d0 = dateOf(range[0]), d6 = dateOf(range[6]);
   $('weekRange').textContent = WEEKDAYS[d0.getDay()] + ' ' + d0.getDate() + ' ' + MONTHS[d0.getMonth()] + L(' إلى ', ' to ') + WEEKDAYS[d6.getDay()] + ' ' + d6.getDate() + ' ' + MONTHS[d6.getMonth()];
   const rows = [
-    [L('أيام مكتملة', 'Days completed'), fullOf(range) + ' / ' + counted(range).length, L('اللي قبله ', 'week before ') + fullOf(prevRange), ''],
+    [L('أيام مكتملة', 'Days completed'), cur.full + ' / ' + cur.counted, L('اللي قبله ', 'week before ') + prev.full, ''],
     [L('الخبرة', 'XP'), xp.toLocaleString('en'), pxp > 0 ? delta(xp, pxp, (v) => Math.round(v / pxp * 100) + '%') : '', xp >= pxp ? 'up' : 'down'],
     [L('التركيز', 'Focus'), hm(focusTot), prevFocus > 0 ? delta(focusTot, prevFocus, hm) : '', focusTot >= prevFocus ? 'up' : 'down'],
     [L('أفضل يوم', 'Best day'), best ? WEEKDAYS[dateOf(best.d).getDay()] : '—', best ? '+' + best.x + ' XP' : '', '']
@@ -1970,44 +1542,23 @@ function bindLook() {
   document.querySelectorAll('.range [data-range]').forEach((b) => b.addEventListener('click', () => { chartRange = Number(b.dataset.range); renderStats(streakInfo()); }));
 }
 
-/* ============ 17. الأنمي «النظام الحي»: الشريط العلوي، قائمة «أ»، وأزرار المدة ============ */
+/* ============ 17. الأنمي «النظام الحي»: الشريط العلوي وأزرار المدة ============ */
 // أزرار المدة: نفس خيارات القائمة المنسدلة (تبقى مخفية في الأنمي وتستخدم في حبر الليل)
 function renderDurChips() {
   const box = $('durChips');
   if (!box) return;
   const sel = $('timerMinutes');
-  const short = { 15: L('15 د', '15m'), 25: L('25 د', '25m'), 45: L('45 د', '45m'), 60: L('ساعة', '1h'), 120: L('ساعتين', '2h'), 180: L('3 ساعات', '3h'), 240: L('4 ساعات', '4h') };
-  box.replaceChildren(...[...sel.options].map((o) => el('button', {
-    type: 'button', class: 'dur-chip', 'aria-pressed': String(o.value === sel.value), disabled: sel.disabled,
-    'aria-label': o.textContent, text: short[o.value] || o.textContent,
-    onclick: () => { if (sel.disabled || sel.value === o.value) return; sel.value = o.value; sel.dispatchEvent(new Event('change', { bubbles: true })); }
-  })));
-}
-
-// زر «أ»: الحرف الأول من اسمك، وقائمة فيها الحساب والنسخ والتيليجرام والصوت واللغة
-function renderMe() {
-  const n = (state.name || '').trim();
-  $('meInitial').textContent = n ? [...n][0].toUpperCase() : L('ص', 'H');
-}
-function bindMe() {
-  const menu = $('meMenu'), btn = $('meBtn');
-  const close = () => { menu.hidden = true; btn.setAttribute('aria-expanded', 'false'); };
-  const fill = () => {
-    const name = (state.name || '').trim() || L('صياد', 'Hunter');
-    const acc = typeof Cloud !== 'undefined' && Cloud.user ? (Cloud.user.email || '') : L('ضيف', 'Guest');
-    $('meWho').textContent = name + ' · ' + acc;
-    const on = $('soundBtn').getAttribute('aria-pressed') !== 'false';
-    $('meSound').textContent = on ? L('الصوت: شغال', 'Sound: on') : L('الصوت: مقفل', 'Sound: off');
-    $('meLang').textContent = EN ? 'العربية' : 'English';
-    $('meLang').lang = EN ? 'ar' : 'en';
-  };
-  btn.addEventListener('click', (e) => { e.stopPropagation(); fill(); menu.hidden = !menu.hidden; btn.setAttribute('aria-expanded', String(!menu.hidden)); if (!menu.hidden) $('meAcc').focus(); });
-  // كل عنصر يضغط الزر الأصلي، فنفس الميزة تشتغل بالضبط
-  let proxying = false;
-  const proxy = (id, target, keepOpen) => $(id).addEventListener('click', (e) => { e.stopPropagation(); if (!keepOpen) close(); proxying = true; try { $(target).click(); } finally { proxying = false; } if (keepOpen) fill(); });
-  proxy('meAcc', 'cloudBtn'); proxy('meBackup', 'backupBtn'); proxy('meTg', 'tgBtn'); proxy('meSound', 'soundBtn', true); proxy('meLang', 'langBtn');
-  document.addEventListener('click', (e) => { if (!proxying && !menu.hidden && !menu.contains(e.target)) close(); });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !menu.hidden) { close(); btn.focus(); } });
+  // نبنيها مرة وحدة بس، وبعدها نحدّث حالتها. لو انبنت كل رسم يضيع التركيز من الكيبورد
+  if (box.childElementCount !== sel.options.length) {
+    box.replaceChildren(...[...sel.options].map((o) => el('button', {
+      type: 'button', class: 'dur-chip', 'data-v': o.value, 'aria-label': o.textContent, text: timerLabel(Number(o.value), true),
+      onclick: () => { if (sel.disabled || sel.value === o.value) return; sel.value = o.value; sel.dispatchEvent(new Event('change', { bubbles: true })); }
+    })));
+  }
+  for (const b of box.children) {
+    b.setAttribute('aria-pressed', String(b.dataset.v === sel.value));
+    b.disabled = sel.disabled;
+  }
 }
 
 // الشريط العلوي شفاف وصورة البوابة تكمل خلفه: نعطي CSS ارتفاعه
