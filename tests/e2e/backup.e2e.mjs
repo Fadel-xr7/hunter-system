@@ -39,8 +39,8 @@ const fileAsk = (page) => page.locator('#confirmDialog[open] #confirmText', { ha
 test('النسخة انحفظت في المتصفح: يمسح على طول، والنسخة موجودة', async () => {
   const { ctx, page } = await setup();
   await askReset(page);
-  const s = await pageState(page);
-  assert.equal(s.totalXp, 0, 'انمسح');
+  // المسح يكمل بعد حدث إقفال النافذة (غير متزامن)، فننتظره بالوقت الحقيقي بدل ما نقرأ على طول
+  assert.ok(await until(page, () => state.totalXp === 0), 'انمسح');
   const copy = JSON.parse(await page.evaluate(() => localStorage.getItem('hunterConflictCopy_v6')));
   assert.equal(copy.side, 'reset');
   assert.equal(copy.state.totalXp, seed.totalXp);
