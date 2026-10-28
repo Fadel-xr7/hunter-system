@@ -1,12 +1,15 @@
 // فحوصات ثابتة على ملفات الموقع (بدون متصفح): قائمة sw.js، السكربتات، والعناصر اللي يطلبها الكود.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
+import vm from 'node:vm';
 
 const DOCS = new URL('../docs/', import.meta.url);
 const read = (p) => readFileSync(new URL(p, DOCS), 'utf8');
 const html = read('index.html');
 const sw = read('sw.js');
+// كل ملفات الكود في docs/js
+const JS = readdirSync(new URL('js/', DOCS)).filter((f) => f.endsWith('.js')).map((f) => 'js/' + f);
 const ASSETS = JSON.parse(sw.match(/const ASSETS = (\[[^\]]*\]);/)[1].replace(/'/g, '"'));
 
 test('sw.js: كل ملف في ASSETS موجود (لو واحد ناقص، الـ service worker ما يتثبت)', () => {
@@ -24,9 +27,11 @@ test('sw.js: كل سكربت وستايل محلي في index.html موجود ف
   assert.deepEqual(notCached, []);
 });
 
-test('ترتيب السكربتات: i18n ثم config ثم core ثم app ثم cloud', () => {
-  const order = [...html.matchAll(/<script src="js\/(\w+)\.js"/g)].map((m) => m[1]);
-  assert.deepEqual(order, ['boot', 'i18n', 'config', 'core', 'app', 'cloud']);
+test('ترتيب السكربتات: core ثم ui ثم الواجهتين ثم الأقسام ثم main ثم cloud', () => {
+  const order = [...html.matchAll(/<script src="js\/([\w-]+)\.js"/g)].map((m) => m[1]);
+  assert.deepEqual(order, ['boot', 'i18n', 'config', 'core', 'ui', 'look-anime', 'look-ink', 'tasks', 'hero', 'timer', 'records', 'stats', 'brief', 'backup', 'main', 'cloud']);
+  // كل ملف في docs/js محمّل في الصفحة (ما فيه ملف منسي)
+  assert.deepEqual(JS.map((f) => f.slice(3, -3)).sort(), order.slice().sort());
 });
 
 test('manifest: الأيقونات موجودة', () => {
@@ -37,9 +42,9 @@ test('manifest: الأيقونات موجودة', () => {
 test("كل $('id') في الكود له عنصر في index.html", () => {
   const ids = new Set([...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]));
   // عناصر تنبني بالكود نفسه (مو في index.html)
-  const built = new Set([...['js/app.js', 'js/core.js', 'js/cloud.js'].map(read).join('\n').matchAll(/\bid: '([^']+)'/g)].map((m) => m[1]));
+  const built = new Set([...JS.map(read).join('\n').matchAll(/\bid: '([^']+)'/g)].map((m) => m[1]));
   const used = new Set();
-  for (const f of ['js/app.js', 'js/core.js', 'js/cloud.js']) for (const m of read(f).matchAll(/\$\('([A-Za-z0-9_-]+)'\)/g)) used.add(m[1]);
+  for (const f of JS) for (const m of read(f).matchAll(/\$\('([A-Za-z0-9_-]+)'\)/g)) used.add(m[1]);
   const missing = [...used].filter((id) => !ids.has(id) && !built.has(id));
   assert.deepEqual(missing, []);
 });
@@ -52,11 +57,29 @@ test('config.js: المفتاح العام بس، بدون أي مفتاح سر�
 });
 
 test('مفاتيح التخزين مكتوبة في boot.js بس', () => {
-  for (const f of ['js/i18n.js', 'js/core.js', 'js/app.js', 'js/cloud.js']) {
+  for (const f of JS.filter((x) => x !== 'js/boot.js')) {
     assert.doesNotMatch(read(f), /'hunter[A-Za-z]+_v\d+'/, f);
   }
 });
 
 test('قائمة مدة المؤقت تنبني من الكود (ما فيه خيارات مكررة في index.html)', () => {
   assert.match(html, /<select id="timerMinutes">\s*<!--[^>]*-->\s*<\/select>/);
+});
+
+test('الواجهتين: نفس الأسماء في look-anime.js و look-ink.js', () => {
+  const ctx = vm.createContext({ LOOKS: {}, L: (ar) => ar });
+  vm.runInContext(read('js/look-anime.js'), ctx);
+  vm.runInContext(read('js/look-ink.js'), ctx);
+  const { anime, ink } = ctx.LOOKS;
+  assert.deepEqual(Object.keys(anime).sort(), Object.keys(ink).sort());
+  assert.deepEqual(Object.keys(anime.briefTitles).sort(), Object.keys(ink.briefTitles).sort());
+  for (const k of Object.keys(anime)) assert.equal(typeof anime[k], typeof ink[k], k);
+  assert.equal(anime.other, 'ink');
+  assert.equal(ink.other, 'anime');
+});
+
+test('الأقسام ما تسأل «أي واجهة؟»: الفرق كله في look-*.js', () => {
+  for (const f of JS.filter((x) => !/^js\/(boot|ui|look-[a-z]+)\.js$/.test(x))) {
+    assert.doesNotMatch(read(f), /theme\(\)|dataset\.theme\s*[!=]==|'(anime|ink)'\s*[?:]/, f);
+  }
 });

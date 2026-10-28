@@ -166,7 +166,7 @@ const Cloud = (() => {
     }
   }
 
-  // قبل ما ينحذف أي طرف في التعارض: نسخة مؤكدة منه (ensureRecoveryCopy في app.js).
+  // قبل ما ينحذف أي طرف في التعارض: نسخة مؤكدة منه (ensureRecoveryCopy في backup.js).
   // false = ما فيه نسخة مؤكدة، فما نحذف شي.
   function keepCopy(data, side) {
     return ensureRecoveryCopy(data, side, 'hunter-' + side + '-copy-' + todayIso() + '.json');
