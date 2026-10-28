@@ -5,6 +5,9 @@
 //   localStorage.__delay       كم ملي ثانية يتأخر الرفع (insert/update)
 //   localStorage.__failWrites  '1' = كل رفع يفشل (مثل انقطاع)
 //   localStorage.__writes      سجل كل رفع: [{ op, at }]
+//   localStorage.__failSignOut 'error' = signOut يرجع خطأ والجلسة المحلية باقية (مثل المكتبة الحقيقية لو فشلت قبل السيرفر).
+//                              حالة «فشل /logout والمكتبة مسحت الجلسة» تنختبر بالمكتبة الحقيقية في signout-real-lib.e2e.mjs
+//                              'throw' = signOut يرمي استثناء
 (function () {
   const ROWS = '__fakeRows';
   const USERS = '__fakeUsers';
@@ -87,7 +90,13 @@
       write(TOKEN, s);
       return { data: { user: s.user, session: s }, error: null };
     },
-    async signOut() { localStorage.removeItem(TOKEN); return { error: null }; },
+    async signOut() {
+      const fail = localStorage.getItem('__failSignOut');
+      if (fail === 'throw') throw new TypeError('Failed to fetch');
+      if (fail === 'error') return { error: { name: 'AuthRetryableFetchError', status: 0, message: 'Failed to fetch' } };
+      localStorage.removeItem(TOKEN);
+      return { error: null };
+    },
     async getUser() { const s = session(); return { data: { user: s && s.user }, error: null }; },
     async resetPasswordForEmail() { return { error: null }; },
     async updateUser() { return { data: {}, error: null }; },

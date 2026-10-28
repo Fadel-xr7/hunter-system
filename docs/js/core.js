@@ -477,7 +477,8 @@ const END = '(?=$|[\\s!#،,.؛])';
 // كلمات الوقت بعد الرقم: «8 مساء»، «8م»، «7 الصبح»، «11 بالليل»، «9pm». الأطول أول عشان «مساء» ما تنقرأ «م»
 const TIME_WORD = '(صباحًا|صباحاً|صباحا|الصباح|الصبح|صبح|فجرًا|فجراً|فجرا|الفجر|ص|مساءً|مساءا|مساء|المساء|المسا|مسا|بالليل|ليلًا|ليلاً|ليلا|الليل|ظهرًا|ظهراً|ظهرا|الظهر|بالظهر|عصرًا|عصراً|عصرا|العصر|بالعصر|المغرب|العشاء|العشا|م|a\\.?m\\.?|p\\.?m\\.?)';
 
-function parseQuick(raw) {
+// opts.daily: الاختيار الظاهر «كل يوم» في الواجهة، يغلب على الكلمات المكتوبة (والوقت الافتراضي يصير 9 الصبح)
+function parseQuick(raw, opts) {
   let s = String(raw || '').replace(/[٠-٩]/g, (c) => '٠١٢٣٤٥٦٧٨٩'.indexOf(c)).replace(/\s+/g, ' ').trim();
   if (!s) return null;
   const out = { kind: 'gate', rank: 'E', stat: 'SENSE', time: '', date: todayIso(), dateLabel: L('اليوم', 'today') };
@@ -524,6 +525,7 @@ function parseQuick(raw) {
 
   m = s.match(new RegExp('(?:^|\\s)(يوميًا|يومياً|يوميا|يومي|كل يوم|daily|every ?day)' + END, 'i'));
   if (m && !forceGate) { out.kind = 'fixed'; s = s.replace(m[0], ' '); }
+  if (opts && opts.daily) out.kind = 'fixed';
 
   out.title = s.replace(/\s+/g, ' ').replace(/^[\s،,.:؛-]+|[\s،,.:؛-]+$/g, '').trim().slice(0, 120);
   if (!out.title) return null;

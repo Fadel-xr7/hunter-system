@@ -29,7 +29,7 @@
     <button class="tab" data-view="ach" data-en="Achievements">الإنجازات</button>
   </nav>
   <div class="tools">
-    <span class="sync-chip" id="syncChip" hidden></span>
+    <span class="sync-chip" id="syncChip" role="status" hidden></span>
     <button class="icon-btn" id="cloudBtn" aria-label="الحساب والمزامنة" data-en-aria="Account and sync" aria-haspopup="menu" aria-expanded="false" data-tip="الحساب" data-en-tip="Account">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.5 19H7a5 5 0 1 1 .9-9.9A6 6 0 0 1 19 10.5a4.3 4.3 0 0 1-1.5 8.5z"/></svg>
     </button>
@@ -176,7 +176,7 @@
             <kbd class="slash-key" aria-hidden="true" title="اضغط / من أي مكان" data-en-title="Press / from anywhere">/</kbd>
           </span>
           <button type="submit" class="main-btn" data-en="Add">أضف</button>
-          <p class="quick-hint" id="quickHint" data-en="Write it the way you'd say it. Optional: a time (9pm, 7:30am), a day (tomorrow, day 12), &quot;daily&quot; to repeat it, a difficulty from !E (easy) to !S (hardest), and an ability like #intellect. No time means 5 pm.">اكتبها مثل ما تتكلم. واختياري تضيف: الوقت (9 مساءً، 7 الصبح، 9:30م)، اليوم (بكرة، يوم 12)، «يومي» لو تتكرر، الصعوبة من !E (سهلة) إلى !S (أصعب شي)، والقدرة مثل #ذكاء. بدون وقت تصير 5 مساءً.</p>
+          <p class="quick-hint" id="quickHint" data-en="Write it the way you'd say it. Optional: a time (9pm, 7:30am), a day (tomorrow, day 12), &quot;daily&quot; to repeat it, a difficulty from !E (easy) to !S (hardest), and an ability like #intellect. No time: daily quests default to 9 am, one-time quests to 5 pm.">اكتبها مثل ما تتكلم. واختياري تضيف: الوقت (9 مساءً، 7 الصبح، 9:30م)، اليوم (بكرة، يوم 12)، «يومي» لو تتكرر، الصعوبة من !E (سهلة) إلى !S (أصعب شي)، والقدرة مثل #ذكاء. بدون وقت: اليومية 9 الصبح، واللي لمرة وحدة 5 مساءً.</p>
         </form>
 
         <div id="taskList"></div>

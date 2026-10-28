@@ -39,7 +39,7 @@ export const TODAY = '2026-10-28';
  * سياق متصفح جاهز: كل الطلبات الخارجية ممنوعة، وvendor/supabase.js يتبدّل بالوهمي.
  * seed: بيانات تنكتب في localStorage مرة وحدة (قبل أول تحميل)، فالتبويب الثاني يشوف نفس البيانات.
  */
-export async function newContext(browser, { lang = 'ar', theme = 'anime', seed = {}, viewport = { width: 1280, height: 900 }, reducedMotion = 'reduce' } = {}) {
+export async function newContext(browser, { lang = 'ar', theme = 'anime', seed = {}, viewport = { width: 1280, height: 900 }, reducedMotion = 'reduce', realLib = false } = {}) {
   const context = await browser.newContext({
     viewport, locale: lang === 'ar' ? 'ar-SA' : 'en-US', timezoneId: 'Asia/Riyadh',
     serviceWorkers: 'block', reducedMotion, acceptDownloads: true
@@ -48,7 +48,8 @@ export async function newContext(browser, { lang = 'ar', theme = 'anime', seed =
   await context.route('**/*', (route) => {
     const u = route.request().url();
     if (u.startsWith('http://127.0.0.1')) {
-      if (u.includes('/vendor/supabase.js')) return route.fulfill({ contentType: 'text/javascript', body: fake });
+      // realLib: نخلي المكتبة الحقيقية (docs/vendor/supabase.js) تشتغل، والاختبار يعترض طلباتها (real-supabase.mjs)
+      if (!realLib && u.includes('/vendor/supabase.js')) return route.fulfill({ contentType: 'text/javascript', body: fake });
       return route.continue();
     }
     if (/\/auth\/v1\/settings/.test(u)) return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ external: { google: false } }) });

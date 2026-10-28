@@ -305,11 +305,8 @@ function toggleSub(gid, sid) {
 /* ============ الإضافة السريعة (المحلل parseQuick في core.js) ============ */
 // الاختيار الظاهر [مرة وحدة / كل يوم] يغلب على الكلمات المكتوبة
 function readQuick() {
-  const p = parseQuick($('quickInput').value);
-  if (!p) return null;
   const daily = document.querySelector('input[name="repeat"]:checked').value === 'daily';
-  if (daily && p.kind !== 'fixed') { p.kind = 'fixed'; p.xp = DAILY_XP; }
-  return p;
+  return parseQuick($('quickInput').value, { daily });
 }
 
 function addParsed(p) {

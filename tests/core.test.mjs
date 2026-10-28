@@ -224,6 +224,24 @@ test('الإضافة السريعة: إنجليزي، يومي، وأرقام ع
   assert.deepEqual([pm.time, pm.title], ['09:15', 'اجتماع']);
 });
 
+test('الإضافة السريعة: بدون وقت، اليومية 9 الصبح واللي لمرة وحدة 5 مساءً', () => {
+  const c = loadCore();
+  for (const [text, time] of [['رياضة يومي', '09:00'], ['read daily', '09:00'], ['رياضة', '17:00'], ['مراجعة بكرة', '17:00'], ['call mom tomorrow', '17:00']]) {
+    assert.equal(c.call('parseQuick', text).time, time, text);
+  }
+});
+
+test('الإضافة السريعة: اختيار «كل يوم» في الواجهة = نفس كلمة «يومي» (9 الصبح بدون وقت، والوقت المكتوب يبقى)', () => {
+  const c = loadCore();
+  const q = (t, o) => { const p = c.call('parseQuick', t, o); return [p.kind, p.time, p.xp, p.title]; };
+  assert.deepEqual(q('قراءة', { daily: true }), q('قراءة يومي'));
+  assert.deepEqual(q('قراءة', { daily: true }), ['fixed', '09:00', 30, 'قراءة']);
+  assert.deepEqual(q('قراءة 7 مساء', { daily: true }), ['fixed', '19:00', 30, 'قراءة']);
+  assert.deepEqual(q('read at 6:30am', { daily: true }), ['fixed', '06:30', 30, 'read']);
+  assert.deepEqual(q('بوابة: قراءة', { daily: true }).slice(0, 2), ['fixed', '09:00'], 'الاختيار الظاهر يغلب مثل قبل');
+  assert.deepEqual(q('قراءة', { daily: false }).slice(0, 2), ['gate', '17:00']);
+});
+
 test('الإضافة السريعة: الوقت بدون «الساعة»، والكلام العامي', () => {
   const c = loadCore();
   const cases = [

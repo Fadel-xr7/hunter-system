@@ -22,6 +22,7 @@ const Cloud = (() => {
   let status = 'off';
   let pushTimer = null;
   let pushing = false;
+  let signingOut = false; // الخروج شغّال: نمنع تكراره، والشارة تقول «جاري تسجيل الخروج…»
   let rev = 0; // يزيد مع كل تعديل: نعرف لو عدّلت أثناء ما الرفع شغّال
   let applying = false;
   let googleOn = null;
@@ -31,6 +32,13 @@ const Cloud = (() => {
     try { const m = JSON.parse(store.get(META_KEY) || '{}'); return m && typeof m === 'object' ? m : {}; } catch (e) { return {}; }
   }
   const writeMeta = () => store.set(META_KEY, JSON.stringify(meta));
+  // تعديلات ما انرفعت لحساب، وما فيه مستخدم داخل (خرج قبل ما تنرفع): لا ضيف ولا حساب ثاني يشوفها أو يعدّلها
+  const pendingAccount = () => !user && Boolean(meta.dirty && meta.uid);
+  function pendingNotice() {
+    showAuth('in');
+    const who = meta.email ? ' (' + meta.email + ')' : '';
+    if (!$('confirmDialog').open) confirmBox(L('في هذا المتصفح تعديلات ما انحفظت لحساب' + who + '. ادخل بالحساب ذاك أول عشان تكمل مزامنتها. قبلها ما نقدر نفتح النظام كضيف.', 'This browser has unsaved changes for an account' + who + '. Sign in to that account first to finish syncing them. Until then the System cannot be opened as a guest.'), L('فهمت', 'Got it'));
+  }
   const cleanState = () => { const { migratedFrom, ...c } = state; return c; };
   const hasProgress = (s) => Object.keys((s && s.rewards) || {}).length > 0;
   const summary = (s) => { const n = normalize(s); return L('المستوى ' + levelInfo(n.totalXp).level + '، خبرة ' + n.totalXp + '، أيام مكتملة ' + n.completedDates.length, 'Level ' + levelInfo(n.totalXp).level + ', XP ' + n.totalXp + ', completed days ' + n.completedDates.length); };
@@ -41,12 +49,14 @@ const Cloud = (() => {
     guest: [L('ضيف: بياناتك في هذا المتصفح بس', 'Guest: your data stays in this browser only'), 'guest'],
     synced: [L('متزامن مع حسابك', 'Synced with your account'), 'ok'],
     saving: [L('يحفظ في حسابك…', 'Saving to your account…'), 'busy'],
+    leaving: [L('جاري تسجيل الخروج…', 'Signing out…'), 'busy'],
     offline: [L('بدون نت: بيرفع لما يرجع الاتصال', "Offline: it'll upload when you're back online"), 'warn'],
     error: [L('تعذّرت المزامنة، بنحاول مرة ثانية', "Sync failed, we'll try again"), 'warn'],
     // قاعدة البيانات ترفض أي حساب بياناته فوق 5 ميغا (supabase/setup.sql)
     toobig: [L('بياناتك تعدّت حد السحابة (5 ميغا)، فآخر تعديلاتك محفوظة في هذا المتصفح بس. نزّل نسخة احتياطية من القائمة.', 'Your data is over the cloud limit (5 MB), so your latest changes are only saved in this browser. Download a backup from the menu.'), 'warn']
   };
   function setStatus(s) {
+    if (signingOut && s !== 'leaving') return; // أثناء الخروج تبقى الشارة «جاري تسجيل الخروج…»
     status = s;
     const b = $('cloudBtn');
     if (!b) return;
@@ -57,7 +67,7 @@ const Cloud = (() => {
     // شارة صغيرة جنب زر الحساب: محفوظ / يحفظ / بدون نت
     const chip = $('syncChip');
     if (chip) {
-      const short = { synced: L('محفوظ في السحابة', 'Saved to cloud'), saving: L('يحفظ…', 'Saving…'), offline: L('بدون نت', 'Offline'), error: L('ما انحفظ للحين', 'Not saved yet'), toobig: L('أكبر من الحد', 'Over the limit'), guest: L('ضيف', 'Guest') }[s];
+      const short = { synced: L('محفوظ في السحابة', 'Saved to cloud'), saving: L('يحفظ…', 'Saving…'), leaving: L('جاري تسجيل الخروج…', 'Signing out…'), offline: L('بدون نت', 'Offline'), error: L('ما انحفظ للحين', 'Not saved yet'), toobig: L('أكبر من الحد', 'Over the limit'), guest: L('ضيف', 'Guest') }[s];
       chip.hidden = !enabled || !short;
       chip.textContent = short || '';
       chip.dataset.state = STATUS[s][1];
@@ -190,6 +200,15 @@ const Cloud = (() => {
 
   async function onSignedIn(u) {
     if (user && user.id === u.id) return;
+    // في هذا المتصفح تعديلات ما انرفعت لحساب ثاني (خرج منه قبل ما تنرفع، signOutSteps).
+    // ما نرفعها لهذا الحساب ولا نخلطها فيه: نخرج منه محلياً ونطلب الدخول بالحساب الأصلي.
+    if (meta.dirty && meta.uid && meta.uid !== u.id) {
+      try { await sb.auth.signOut({ scope: 'local' }); } catch (e) { /* user يبقى null، فما فيه مزامنة لهذا الحساب على أي حال */ }
+      showAuth('in');
+      const who = meta.email ? ' (' + meta.email + ')' : '';
+      if (!$('confirmDialog').open) confirmBox(L('في هذا المتصفح تعديلات ما انحفظت لحساب ثاني' + who + '. ما رفعناها لهذا الحساب ولا خلطناها فيه. ادخل بالحساب ذاك أول عشان تكمل مزامنتها.', 'This browser has unsaved changes for another account' + who + '. They were not uploaded to or mixed into this account. Sign in to that account first to finish syncing them.'), L('فهمت', 'Got it'));
+      return;
+    }
     user = u;
     store.del(GUEST_KEY);
     const metaName = u.user_metadata && (u.user_metadata.name || u.user_metadata.full_name);
@@ -201,17 +220,58 @@ const Cloud = (() => {
     afterEntry();
   }
 
+  // الخروج: يرفع آخر التعديلات، ينهي الجلسة، وبعدها يمسح بيانات الحساب من هذا المتصفح.
+  // ما يمسح شي ما انحفظ: لو الرفع فشل، أو الجلسة باقية، أو صار تعديل أثناء الانتظار.
   async function signOut() {
+    if (signingOut) return; // ضغطة ثانية أثناء الخروج ما تسوي شي
+    signingOut = true;
+    try { await signOutSteps(); } finally {
+      signingOut = false;
+      $('cloudBtn').disabled = false;
+      if (status === 'leaving') setStatus(user ? (meta.dirty ? 'error' : 'synced') : 'off');
+    }
+  }
+  async function signOutSteps() {
     if (!(await confirmBox(L('تسجيل الخروج يمسح بياناتك من هذا المتصفح، وتبقى محفوظة في حسابك. تبي تكمل؟', 'Signing out clears your data from this browser; it stays saved in your account. Continue?'), L('سجّل خروج', 'Sign out')))) return;
+    $('cloudBtn').disabled = true;
+    setStatus('leaving');
     if (meta.dirty) { clearTimeout(pushTimer); await push(); }
     if (meta.dirty) { toast(L('ما قدرنا نرفع آخر تعديلاتك', "Couldn't upload your latest changes"), L('تأكد من النت وحاول مرة ثانية', 'Check your connection and try again'), 'warn'); return; }
-    await sb.auth.signOut().catch(() => {});
+    setStatus('leaving');
+    // نفحص الخطأ الراجع والاستثناء. المكتبة لما يفشل إلغاء الجلسة في السيرفر تمسحها من المتصفح وترجع error،
+    // ولما تفشل قبل ما توصل للسيرفر (مثلاً جلسة منتهية وتجديدها فشل) ترجع error والجلسة باقية. نفرّق بينهم بسؤالها.
+    // error: null معناه الخروج المحلي تم بس: المكتبة ترجعه حتى لو السيرفر رد 401 أو 403 أو 404،
+    // فما يثبت إن كل جلسات الحساب في السيرفر انلغت.
+    let out, unconfirmed = false;
+    try { out = await sb.auth.signOut(); } catch (e) { out = { error: e }; }
+    if (!out || out.error) {
+      let kept = true; // لو ما قدرنا نتأكد إن الجلسة المحلية انمسحت، نعتبرها باقية
+      try { const r = await sb.auth.getSession(); kept = !(r && !r.error && r.data && !r.data.session); } catch (e) { /* باقية */ }
+      if (kept) { toast(L('ما قدرنا ننهي الجلسة', "Couldn't sign you out"), L('بياناتك باقية في هذا المتصفح. تأكد من النت وحاول مرة ثانية', 'Your data is still in this browser. Check your connection and try again'), 'warn'); return; }
+      unconfirmed = true; // خرجنا محلياً، بس إلغاء الجلسة في السيرفر ما تأكد
+    }
+    const serverNote = unconfirmed ? L('\n\nوما تأكدنا إن جلستك انلغت في الخوادم: طلب الإلغاء فشل. لا تعتبر الجلسة ملغاة.', '\n\nAlso, we could not confirm that your session was revoked on the server: the revoke request failed. Do not assume it is revoked.') : '';
+    // الجلسة المحلية راحت: المزامنة توقف هنا
+    const leaving = user;
     user = null;
+    clearTimeout(pushTimer);
+    if (meta.dirty) {
+      // تعديل صار أثناء الانتظار (changed() يخلي dirty = true) وما تأكد رفعه، وما عاد نقدر نرفعه. ما نمسح شي: يبقى في هذا المتصفح مع حالة المزامنة،
+      // ويترفع لما تدخل نفس الحساب (أو تطلع نافذة الاختيار لو بيانات الحساب تغيّرت من جهاز ثاني).
+      // meta.uid يربطها بهذا الحساب، فأي حساب ثاني ينرفض في onSignedIn. الإيميل بس عشان نقول لك أي حساب.
+      meta.email = leaving.email || ''; writeMeta();
+      renderAccount(); showAuth('in');
+      confirmBox(L('خرجت من الحساب، بس صار تعديل أثناء الخروج وما تأكدنا إنه انحفظ في حسابك. تعديلاتك باقية في هذا المتصفح. سجّل دخولك للحساب نفسه لإكمال المزامنة، وقد نطلب منك اختيار النسخة إذا تغيّرت بيانات الحساب من جهاز آخر.', 'You are signed out, but a change was made while signing out and we could not confirm it was saved to your account. Your changes are still in this browser. Sign in to the same account to finish syncing; we may ask you to choose a version if the account\'s data changed on another device.') + serverNote, L('فهمت', 'Got it'));
+      return;
+    }
     applying = true;
     state = freshState(); meta = {}; store.del(META_KEY); store.del(STORE_KEYS.nameAsked);
+    store.del(STORE_KEYS.conflictCopy); // نسخة الاسترجاع فيها بيانات الحساب، ما تبقى بعد الخروج
     save(); applying = false;
     commit(); runTimer();
+    setStatus('off'); renderAccount();
     showAuth('in');
+    if (unconfirmed) confirmBox(L('خرجت من هذا المتصفح، وبياناتك انمسحت منه وهي محفوظة في حسابك.', 'You are signed out of this browser and its data was cleared; it stays saved in your account.') + serverNote, L('فهمت', 'Got it'));
   }
 
   /* ============ 3. شاشة الدخول ============ */
@@ -351,6 +411,7 @@ const Cloud = (() => {
   }
 
   function guest() {
+    if (pendingAccount()) { pendingNotice(); return; }
     store.set(GUEST_KEY, '1');
     hideAuth();
     setStatus('guest');
@@ -415,6 +476,7 @@ const Cloud = (() => {
     bindUI();
     renderAuthTally();
     if (!enabled) {
+      if (pendingAccount()) { setStatus('off'); $('cloudBtn').hidden = true; pendingNotice(); return; }
       hideAuth(); setStatus('off'); $('cloudBtn').hidden = true;
       if (document.documentElement.classList.contains('need-auth')) afterEntry();
       return;
@@ -435,6 +497,7 @@ const Cloud = (() => {
     const { data } = await sb.auth.getSession();
     if (data && data.session && data.session.user && mode !== 'reset') { await onSignedIn(data.session.user); return; }
     if (mode === 'reset') return;
+    if (pendingAccount()) { pendingNotice(); return; } // ضيف أو لا: مقفول لين يدخل نفس الحساب
     if (store.get(GUEST_KEY)) { setStatus('guest'); renderAccount(); if (document.documentElement.classList.contains('need-auth')) { hideAuth(); afterEntry(); } return; }
     showAuth('in');
   }

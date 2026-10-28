@@ -83,3 +83,13 @@ test('الأقسام ما تسأل «أي واجهة؟»: الفرق كله في
     assert.doesNotMatch(read(f), /theme\(\)|dataset\.theme\s*[!=]==|'(anime|ink)'\s*[?:]/, f);
   }
 });
+
+test('شرح الوقت الافتراضي (الموقع والبوت): اليومية 9 الصبح، واللي لمرة وحدة 5 مساءً', () => {
+  const bot = readFileSync(new URL('../supabase/functions/telegram-bot/index.ts', import.meta.url), 'utf8');
+  const hint = html.match(/<p class="quick-hint" id="quickHint"[^>]*>[^<]*<\/p>/)[0];
+  for (const [name, text] of [['index.html', hint], ['telegram-bot', bot]]) {
+    assert.match(text, /بدون وقت: اليومية 9 الصبح، واللي لمرة وحدة 5 مساءً/, name);
+    assert.match(text, /No time: daily quests default to 9 am, one-time quests to 5 pm/, name);
+    assert.doesNotMatch(text, /بدون وقت تصير 5|No time means 5/, name);
+  }
+});

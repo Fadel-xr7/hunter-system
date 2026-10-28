@@ -77,3 +77,75 @@ test('تعارض بين جهازين: لو ما انحفظت نسخة مؤكدة
   assert.equal(await page.locator('#syncChip').getAttribute('data-state'), 'warn');
   await ctx.close();
 });
+
+// الخروج: نسخة الاسترجاع فيها بيانات الحساب، فتنمسح مع باقي بيانات الحساب. بس لو الخروج وقف (الرفع فشل) تبقى.
+async function signOutFlow(page) {
+  await page.click('#cloudBtn');
+  await page.click('#accOut');
+  await page.locator('#confirmDialog[open] #confirmOk').click();
+  await page.clock.runFor(2000); // ساعة الصفحة واقفة: نخلي الرفع والخروج يكملون
+}
+const COPY = JSON.stringify({ at: '2026-10-27T20:00:00.000Z', side: 'browser', state: { totalXp: 999 } });
+
+test('تسجيل الخروج الناجح يمسح نسخة الاسترجاع (hunterConflictCopy_v6)', async () => {
+  const seed = buildSeed();
+  const ctx = await newContext(browser, { seed: { ...userSeed({ state: seed }), hunterConflictCopy_v6: JSON.parse(COPY) } });
+  const page = await openPage(ctx, srv.url);
+  await page.clock.runFor(500);
+  assert.equal(await page.evaluate(() => localStorage.getItem('hunterConflictCopy_v6')), COPY, 'النسخة موجودة قبل الخروج');
+  await task(page, 'مذاكرة بتركيز ساعة').click(); // تعديل ما ترفع، فالخروج يرفعه أول
+  await signOutFlow(page);
+  assert.ok(await until(page, () => document.documentElement.classList.contains('need-auth')), 'رجعت شاشة الدخول');
+  const ls = await page.evaluate(() => ({ copy: localStorage.getItem('hunterConflictCopy_v6'), meta: localStorage.getItem('hunterSync_v6'), token: localStorage.getItem('sb-fake-auth-token') }));
+  assert.equal(ls.copy, null, 'نسخة الاسترجاع انمسحت');
+  assert.equal(ls.meta, null);
+  assert.equal(ls.token, null, 'الجلسة انتهت');
+  assert.deepEqual((await serverRows(page)).u_test.data.log[TODAY].slice().sort(), ['f_study', 'f_train'], 'آخر تعديل انرفع قبل الخروج');
+  assert.deepEqual(page.errors, []);
+  await ctx.close();
+});
+
+test('لو الخروج وقف لأن الرفع فشل، نسخة الاسترجاع والبيانات والجلسة باقية', async () => {
+  const seed = buildSeed();
+  const ctx = await newContext(browser, { seed: { ...userSeed({ state: seed }), hunterConflictCopy_v6: JSON.parse(COPY) } });
+  const page = await openPage(ctx, srv.url);
+  await page.clock.runFor(500);
+  await page.evaluate(() => localStorage.setItem('__failWrites', '1'));
+  await task(page, 'مذاكرة بتركيز ساعة').click();
+  await signOutFlow(page);
+  assert.ok(await until(page, () => document.getElementById('toasts').textContent.includes('ما قدرنا نرفع آخر تعديلاتك')), 'طلع تحذير فشل الرفع');
+  assert.equal(await page.evaluate(() => document.documentElement.classList.contains('need-auth')), false, 'ما طلع من الحساب');
+  const ls = await page.evaluate(() => ({ copy: localStorage.getItem('hunterConflictCopy_v6'), meta: JSON.parse(localStorage.getItem('hunterSync_v6')), token: localStorage.getItem('sb-fake-auth-token') }));
+  assert.equal(ls.copy, COPY, 'نسخة الاسترجاع باقية');
+  assert.equal(ls.meta.dirty, true, 'التعديل للحين ينتظر الرفع');
+  assert.ok(ls.token, 'الجلسة باقية');
+  assert.deepEqual((await pageState(page)).log[TODAY].slice().sort(), ['f_study', 'f_train'], 'بيانات المتصفح باقية');
+  await ctx.close();
+});
+
+for (const mode of ['error', 'throw']) {
+  test(`لو إنهاء الجلسة فشل (${mode === 'error' ? 'خطأ راجع من Supabase' : 'استثناء'}): ما ينمسح شي، والمحاولة الثانية تكمل`, async () => {
+    const seed = buildSeed();
+    const ctx = await newContext(browser, { seed: { ...userSeed({ state: seed }), hunterConflictCopy_v6: JSON.parse(COPY) } });
+    const page = await openPage(ctx, srv.url);
+    await page.clock.runFor(500);
+    await page.evaluate((m) => localStorage.setItem('__failSignOut', m), mode);
+    await signOutFlow(page);
+    assert.ok(await until(page, () => document.getElementById('toasts').textContent.includes('ما قدرنا ننهي الجلسة')), 'طلع تحذير');
+    assert.equal(await page.evaluate(() => document.documentElement.classList.contains('need-auth')), false, 'ما رجعت شاشة الدخول');
+    const ls = await page.evaluate(() => ({ copy: localStorage.getItem('hunterConflictCopy_v6'), meta: localStorage.getItem('hunterSync_v6'), name: localStorage.getItem('hunterNameAsked_v6') }));
+    assert.equal(ls.copy, COPY, 'نسخة الاسترجاع باقية');
+    assert.ok(ls.meta, 'حالة المزامنة باقية');
+    assert.equal(ls.name, '1');
+    const local = await pageState(page);
+    assert.equal(local.totalXp, seed.totalXp, 'بيانات المتصفح باقية');
+
+    // المحاولة الثانية تنجح: الحين ينمسح كل شي
+    await page.evaluate(() => localStorage.removeItem('__failSignOut'));
+    await signOutFlow(page);
+    assert.ok(await until(page, () => document.documentElement.classList.contains('need-auth')), 'المحاولة الثانية طلّعته');
+    assert.equal(await page.evaluate(() => localStorage.getItem('hunterConflictCopy_v6')), null);
+    assert.deepEqual(page.errors, []);
+    await ctx.close();
+  });
+}

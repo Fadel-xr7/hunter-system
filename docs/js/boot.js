@@ -18,8 +18,10 @@ const BOOT_LANG = (function () {
 // الواجهة المحفوظة
 try { var t = localStorage.getItem(STORE_KEYS.theme); if (t === 'ink' || t === 'anime') document.documentElement.dataset.theme = t; } catch (e) {}
 if (BOOT_LANG === 'en') { document.documentElement.lang = 'en'; document.documentElement.dir = 'ltr'; document.title = 'Hunter System'; }
-// شاشة الدخول: تظهر إذا ما فيه جلسة محفوظة وما اخترت تكمل كضيف
+// شاشة الدخول: تظهر إذا ما فيه جلسة محفوظة وما اخترت تكمل كضيف،
+// ودايماً لو فيه تعديلات ما انرفعت لحساب (خرج قبل ما تنرفع): ما تنفتح كضيف، وcloud.js يفتحها بس لو دخل نفس الحساب
 try {
   var hasSession = Object.keys(localStorage).some(function (k) { return /^sb-.+-auth-token$/.test(k); });
-  if (!hasSession && !localStorage.getItem(STORE_KEYS.guest)) document.documentElement.classList.add('need-auth');
+  var bootSync = JSON.parse(localStorage.getItem(STORE_KEYS.sync) || '{}') || {};
+  if ((bootSync.dirty && bootSync.uid) || (!hasSession && !localStorage.getItem(STORE_KEYS.guest))) document.documentElement.classList.add('need-auth');
 } catch (e) {}

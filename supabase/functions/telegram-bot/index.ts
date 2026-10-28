@@ -53,7 +53,7 @@ const HELP_AR =
   '• <code>يومي</code> لو تتكرر كل يوم\n' +
   '• الصعوبة: من <code>!E</code> (سهلة) إلى <code>!S</code> (أصعب شي)\n' +
   '• القدرة: <code>#قوة #حيوية #رشاقة #ذكاء #انضباط</code>\n' +
-  'بدون وقت تصير 5 مساءً.\n\n' +
+  'بدون وقت: اليومية 9 الصبح، واللي لمرة وحدة 5 مساءً.\n\n' +
   'أرد عليك برابط، اضغطه فيفتح الموقع ويسألك قبل الإضافة.\n' +
   '🔒 ما أحفظ رسائلك، والمهمة تنضاف في حسابك أنت بس.';
 
@@ -67,7 +67,7 @@ const HELP_EN =
   '• <code>daily</code> if it repeats every day\n' +
   '• difficulty: <code>!E</code> (easy) to <code>!S</code> (hardest)\n' +
   '• ability: <code>#strength #vitality #agility #intellect #discipline</code>\n' +
-  'No time means 5 pm.\n\n' +
+  'No time: daily quests default to 9 am, one-time quests to 5 pm.\n\n' +
   'I reply with a link. Open it and the site asks you before adding.\n' +
   "🔒 I don't keep your messages, and the quest is added to your own account only.";
 
