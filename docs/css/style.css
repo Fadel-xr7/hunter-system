@@ -1308,3 +1308,9 @@ dialog.lv-dlg::backdrop { background: rgba(1, 4, 11, .88); }
 
 /* النوافذ: .panel تعطي position: relative، فنرجّع التثبيت عشان ما تمشي مع السكرول */
 dialog.panel:modal { position: fixed; }
+
+/* حقوق المشروع: واضحة في الواجهتين وعلى الشاشات الصغيرة */
+.site-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 20px; margin: 24px auto 0; padding: 16px 20px max(16px, env(safe-area-inset-bottom)); border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; text-align: center; }
+.site-footer p { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0 6px; margin: 0; }
+.site-footer a { display: inline-flex; align-items: center; min-height: 44px; color: inherit; text-underline-offset: 4px; }
+.site-footer a:hover { color: var(--text); }
