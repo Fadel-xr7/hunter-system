@@ -477,11 +477,28 @@ const END = '(?=$|[\\s!#،,.؛])';
 // كلمات الوقت بعد الرقم: «8 مساء»، «8م»، «7 الصبح»، «11 بالليل»، «9pm». الأطول أول عشان «مساء» ما تنقرأ «م»
 const TIME_WORD = '(صباحًا|صباحاً|صباحا|الصباح|الصبح|صبح|فجرًا|فجراً|فجرا|الفجر|ص|مساءً|مساءا|مساء|المساء|المسا|مسا|بالليل|ليلًا|ليلاً|ليلا|الليل|ظهرًا|ظهراً|ظهرا|الظهر|بالظهر|عصرًا|عصراً|عصرا|العصر|بالعصر|المغرب|العشاء|العشا|م|a\\.?m\\.?|p\\.?m\\.?)';
 
+// تاريخ حقيقي بصيغة YYYY-MM-DD (يرفض 2026-02-30 وأمثاله)
+const isIsoDate = (s) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s) && isoOf(dateOf(s)) === s;
+
+// «يوم 31»: أقرب شهر فيه هذا اليوم، من base وطالع. بدون ما يقلب لأول الشهر اللي بعده (31 نوفمبر ما يصير 1 ديسمبر)
+function nextDayOfMonth(base, n) {
+  const b = dateOf(base);
+  for (let i = 0; i < 13; i++) {
+    const d = new Date(b.getFullYear(), b.getMonth() + i, n);
+    if (d.getDate() === n && isoOf(d) >= base) return d;
+  }
+  return null;
+}
+
 // opts.daily: الاختيار الظاهر «كل يوم» في الواجهة، يغلب على الكلمات المكتوبة (والوقت الافتراضي يصير 9 الصبح)
+// opts.base: اليوم اللي تنحسب منه «بكرة» و«بعد بكرة» و«يوم 12» و«اليوم» (روابط البوت تحمل يوم الإرسال).
+//   بدونه: اليوم الحالي. لو تاريخ غير صالح: null (الرابط خربان).
 function parseQuick(raw, opts) {
+  const base = opts && opts.base !== undefined ? opts.base : todayIso();
+  if (!isIsoDate(base)) return null;
   let s = String(raw || '').replace(/[٠-٩]/g, (c) => '٠١٢٣٤٥٦٧٨٩'.indexOf(c)).replace(/\s+/g, ' ').trim();
   if (!s) return null;
-  const out = { kind: 'gate', rank: 'E', stat: 'SENSE', time: '', date: todayIso(), dateLabel: L('اليوم', 'today') };
+  const out = { kind: 'gate', rank: 'E', stat: 'SENSE', time: '', date: base, dateLabel: base === todayIso() ? L('اليوم', 'today') : dateLabelOf(base) };
   let forceGate = false;
 
   const pre = s.match(/^(مهمة|مهمه|بوابة|بوابه|task|quest|gate)\s*[:：]\s*/i);
@@ -509,17 +526,15 @@ function parseQuick(raw, opts) {
   m = s.match(/#([^\s#!]+)/);
   if (m) { const k = QUICK_STATS[m[1]] || QUICK_STATS[m[1].toUpperCase()] || QUICK_STATS[m[1].toLowerCase()]; if (k) { out.stat = k; s = s.replace(m[0], ' '); } }
 
+  // «بكرة» من base: لو base مو اليوم (رابط قديم انفتح متأخر)، نكتب التاريخ نفسه بدل «بكرة»
+  const rel = (n, ar, en) => { out.date = addDays(base, n); out.dateLabel = base === todayIso() ? L(ar, en) : dateLabelOf(out.date); };
   m = s.match(new RegExp('(?:^|\\s)(بعد بكرة|بعد بكره|بعد غد|day after tomorrow)' + END, 'i'));
-  if (m) { out.date = addDays(todayIso(), 2); out.dateLabel = L('بعد بكرة', 'day after tomorrow'); s = s.replace(m[0], ' '); }
-  else if ((m = s.match(new RegExp('(?:^|\\s)(بكرة|بكره|غدًا|غداً|غدا|الغد|tomorrow|tmrw)' + END, 'i')))) { out.date = addDays(todayIso(), 1); out.dateLabel = L('بكرة', 'tomorrow'); s = s.replace(m[0], ' '); }
+  if (m) { rel(2, 'بعد بكرة', 'day after tomorrow'); s = s.replace(m[0], ' '); }
+  else if ((m = s.match(new RegExp('(?:^|\\s)(بكرة|بكره|غدًا|غداً|غدا|الغد|tomorrow|tmrw)' + END, 'i')))) { rel(1, 'بكرة', 'tomorrow'); s = s.replace(m[0], ' '); }
   else if ((m = s.match(new RegExp('(?:^|\\s)(?:يوم|day)\\s*(\\d{1,2})(?:st|nd|rd|th)?' + END, 'i')))) {
     const n = parseInt(m[1], 10);
-    if (n >= 1 && n <= 31) {
-      const now = new Date();
-      let d = new Date(now.getFullYear(), now.getMonth(), n);
-      if (isoOf(d) < todayIso()) d = new Date(now.getFullYear(), now.getMonth() + 1, n);
-      out.date = isoOf(d); out.dateLabel = d.getDate() + ' ' + MONTHS[d.getMonth()];
-    }
+    const d = n >= 1 && n <= 31 ? nextDayOfMonth(base, n) : null;
+    if (d) { out.date = isoOf(d); out.dateLabel = dateLabelOf(out.date); }
     s = s.replace(m[0], ' ');
   } else if ((m = s.match(new RegExp('(?:^|\\s)(?:اليوم|today)' + END, 'i')))) s = s.replace(m[0], ' ');
 
@@ -532,6 +547,45 @@ function parseQuick(raw, opts) {
   if (!out.time) out.time = out.kind === 'fixed' ? '09:00' : '17:00';
   out.xp = out.kind === 'fixed' ? DAILY_XP : RANK_XP[out.rank];
   return out;
+}
+
+// «29 أكتوبر»، ومعه السنة لو غير هالسنة
+function dateLabelOf(iso) {
+  const d = dateOf(iso);
+  return d.getDate() + ' ' + MONTHS[d.getMonth()] + (d.getFullYear() !== new Date().getFullYear() ? ' ' + d.getFullYear() : '');
+}
+
+// رابط البوت المفهوم: #quest=1&t=<العنوان>&k=gate|daily&d=<YYYY-MM-DD>&h=<HH:MM>&r=<E..S>&s=<القدرة>
+// الحقول تنقرأ كما هي (التاريخ كامل، ما ينحسب من يوم الفتح)، وأي حقل ناقص أو زايد أو غلط = null.
+// entries: [[key, value], ...] من URLSearchParams
+const QUEST_KEYS = { gate: ['quest', 't', 'k', 'd', 'h', 'r', 's'], daily: ['quest', 't', 'k', 'h', 's'] };
+function questFromLink(entries) {
+  if (!Array.isArray(entries)) return null;
+  const q = {};
+  for (const [k, v] of entries) { if (k in q || typeof v !== 'string') return null; q[k] = v; }
+  if (q.quest !== '1' || !(q.k in QUEST_KEYS)) return null;
+  const keys = QUEST_KEYS[q.k];
+  if (Object.keys(q).length !== keys.length || !keys.every((k) => k in q)) return null;
+  const title = q.t.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!title || title.length > 120 || !isTime(q.h) || !STATS.includes(q.s)) return null;
+  if (q.k === 'daily') return { kind: 'fixed', rank: 'E', stat: q.s, time: q.h, date: todayIso(), dateLabel: L('اليوم', 'today'), title, xp: DAILY_XP };
+  if (!isIsoDate(q.d) || !(q.r in RANK_XP)) return null;
+  return { kind: 'gate', rank: q.r, stat: q.s, time: q.h, date: q.d, dateLabel: WEEKDAYS[dateOf(q.d).getDay()] + ' ' + dateLabelOf(q.d), title, xp: RANK_XP[q.r] };
+}
+
+// رابط البوت بنص المهمة: #add=<النص> (قديم، ينحسب من يوم الفتح) أو #add=<النص>&on=<يوم الإرسال>
+// body: اللي بعد «#add=». يرجع { text, base } أو null لو الرابط خربان
+function addLinkParts(body) {
+  const [first, ...rest] = String(body).split('&');
+  let text, base;
+  try { text = decodeURIComponent(first.replace(/\+/g, ' ')).slice(0, 300); } catch (e) { return null; }
+  for (const part of rest) {
+    const i = part.indexOf('=');
+    if (part.slice(0, i) !== 'on' || base !== undefined) return null;
+    base = part.slice(i + 1);
+    if (!isIsoDate(base)) return null;
+  }
+  return { text, base };
 }
 
 function describeQuick(p) {

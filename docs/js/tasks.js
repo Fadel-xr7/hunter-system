@@ -334,16 +334,18 @@ function quickChips(p) {
     chip('+' + p.xp + ' XP', 'q-xp', true)].filter(Boolean));
 }
 
-// روابط البوت: index.html#add=<نص المهمة>
+// روابط البوت: index.html#quest=1&… (حقول جاهزة بتاريخ كامل) أو #add=<نص المهمة>[&on=<يوم الإرسال>]
 async function importFromHash() {
   const h = location.hash || '';
-  if (!h.startsWith('#add=')) return;
-  let text = '';
-  try { text = decodeURIComponent(h.slice(5).replace(/\+/g, ' ')).slice(0, 300); } catch (e) { text = ''; }
+  const isQuest = h.startsWith('#quest=');
+  if (!isQuest && !h.startsWith('#add=')) return;
   history.replaceState(null, '', location.pathname + location.search);
-  const p = parseQuick(text);
-  if (!p) { toast(L('رابط المهمة غير صالح', 'Invalid quest link'), L('ما قدرت أقرأ اسم المهمة', "Couldn't read the quest name"), 'warn'); return; }
-  if (await confirmBox(L('مهمة واردة من تيليجرام:\n', 'Quest from Telegram:\n') + describeQuick(p) + L('\n\nتضيفها؟', '\n\nAdd it?'), L('أضفها', 'Add it'))) addParsed(p);
+  let p = null;
+  if (isQuest) { try { p = questFromLink([...new URLSearchParams(h.slice(1))]); } catch (e) { p = null; } }
+  else { const a = addLinkParts(h.slice(5)); p = a && parseQuick(a.text, { base: a.base }); }
+  if (!p) { toast(L('رابط المهمة غير صالح', 'Invalid quest link'), L('ما قدرت أقرأ المهمة من الرابط', "Couldn't read the quest from the link"), 'warn'); return; }
+  const past = p.kind === 'gate' && p.date < todayIso() ? L('\n\n⚠️ تاريخ المهمة فات، وبتنضاف بنفس تاريخها.', '\n\n⚠️ This date has already passed. It will be added with that date.') : '';
+  if (await confirmBox(L('مهمة واردة من تيليجرام:\n', 'Quest from Telegram:\n') + describeQuick(p) + past + L('\n\nتضيفها؟', '\n\nAdd it?'), L('أضفها', 'Add it'))) addParsed(p);
 }
 
 /* ============ الأزرار ============ */
@@ -369,7 +371,7 @@ function bindTaskTools() {
   $('restBtn').addEventListener('click', toggleRest);
 }
 
-// بوت واحد للكل (Supabase Edge Function). اسمه في config.js، وروابطه تجي بـ #add=
+// بوت واحد للكل (Supabase Edge Function). اسمه في config.js، وروابطه تجي بـ #quest= أو #add=
 function bindTelegram() {
   $('tgBtn').addEventListener('click', () => {
     const bot = String((window.HUNTER_CONFIG || {}).telegramBot || '').replace(/^@/, '').trim();

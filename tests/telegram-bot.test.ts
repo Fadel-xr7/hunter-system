@@ -34,15 +34,15 @@ test('اللغة: من نص الرسالة، و/start من لغة تيليجرا
   assert.equal(isEnglish('/start', ''), false);
 });
 
-test('مهمة عادية: رد فيه الرابط وزر، والنص مهرّب', async () => {
+test('طلب صريح بدون ذكاء («مهمة: …»): رد فيه الرابط وزر، والنص مهرّب، و«بكرة» تنحسب من يوم الإرسال', async () => {
   const { calls, send } = fakeSend();
-  await handleUpdate(msg('مهمة: <b>تجربة</b>'), env, send);
+  await handleUpdate(msg('مهمة: <b>تجربة</b> بكرة'), { ...env, now: () => Date.UTC(2026, 9, 28, 9) }, send);
   assert.equal(calls.length, 1);
   const b = calls[0].body;
   assert.equal(b.parse_mode, 'HTML');
   assert.ok(b.text.includes('&lt;b&gt;تجربة&lt;/b&gt;'));
   assert.ok(!b.text.includes('<b>تجربة'));
-  assert.equal(b.reply_markup.inline_keyboard[0][0].url, makeLink(env.siteUrl, 'مهمة: <b>تجربة</b>'));
+  assert.equal(b.reply_markup.inline_keyboard[0][0].url, env.siteUrl + '#add=' + encodeURIComponent('<b>تجربة</b> بكرة') + '&on=2026-10-28');
 });
 
 test('/start يعطي الشرح، والقروبات والبوتات ما يرد عليها', async () => {

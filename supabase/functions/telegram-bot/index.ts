@@ -1,12 +1,15 @@
 // بوت تيليجرام لنظام الصياد: بوت واحد يخدم الكل، ويشتغل على Supabase 24 ساعة.
 //
-// ترسل له مهمة بسطر واحد، فيرد برابط فيه المهمة. تضغطه فيفتح موقعك ويسألك قبل الإضافة.
-// البوت ما يحفظ أي شي ولا يوصل لقاعدة البيانات: المهمة تنضاف في متصفحك وحسابك أنت،
+// يسولف طبيعي (لو GROQ_API_KEY موجود)، ويجهّز مهمة بس لما تطلبها صراحة («ضيف مهمة …»): يرد بملخص
+// وزر رابط، تضغطه فيفتح موقعك ويسألك قبل الإضافة. التفاصيل في assistant.ts.
+// البوت ما يوصل لقاعدة البيانات ولا يحفظ المحادثة: المهمة تنضاف في متصفحك وحسابك أنت،
 // فلو استخدمه أكثر من شخص، كل واحد مهامه تروح له بس.
 //
 // الإعداد (مرة وحدة):
 //   1. في لوحة Supabase: Edge Functions ← Secrets، أضف TELEGRAM_BOT_TOKEN (من @BotFather).
 //      واختياري SITE_URL لو تبي رابط غير الافتراضي.
+//      واختياري GROQ_API_KEY (console.groq.com، الخطة المجانية) للمحادثة، وGROQ_MODEL لو تبي موديل ثاني.
+//      بدونه البوت يجهّز روابط بالكلام كما هو للطلبات الصريحة بس، وما يسولف.
 //      وأضف SETUP_KEY: أي كلمة طويلة عشوائية من عندك (تحمي رابط الإعداد).
 //   2. افتح في المتصفح: https://<project>.supabase.co/functions/v1/telegram-bot?setup=1&key=<SETUP_KEY>
 //      يربط البوت بهذي الدالة (webhook) ويضبط قائمة الأوامر. بدون المفتاح الصحيح يرفض.
@@ -20,6 +23,11 @@
 //     حدود هذا الضمان: الذاكرة لكل نسخة من الدالة بس. لو Supabase شغّل نسختين بنفس الوقت، أو أعاد تشغيل
 //     الدالة، تحديث معاد ممكن ينرد عليه مرة ثانية. وكذلك لو الرد وصل وانقطع الاتصال قبل ما نعرف.
 //     الضمان الكامل يحتاج جدول في قاعدة البيانات، والبوت مقصود ما يحفظ شي.
+//   - رد كل تحديث ينحفظ (outcomes): لو تيليجرام أعاده بعد فشل الإرسال، نرسل نفس الرد بدون طلب ثاني لـ Groq
+//     وبدون ما تتكرر الرسالة في ذاكرة المحادثة.
+//   - السجلات: رموز بس (مثل bot: groq_429)، بدون نص الرسائل.
+
+import { respond, helpText, resetAssistant, type AiConfig, type Outgoing } from './assistant.ts';
 
 const MAX_LEN = 300;
 const RATE_MAX = 20;
@@ -31,6 +39,7 @@ export interface Env {
   siteUrl: string;
   selfUrl: string; // رابط هذي الدالة نفسها (للـ webhook)
   setupKey?: string; // يحمي ?setup=1
+  ai?: AiConfig; // المحادثة بالذكاء (Groq). بدونه: روابط للطلبات الصريحة بس
   sleep?: (ms: number) => Promise<void>; // للاختبارات
   now?: () => number; // للاختبارات
 }
@@ -42,34 +51,6 @@ type Send = (method: string, body: Record<string, unknown>) => Promise<SendResul
 export class SendFailed extends Error {}
 
 const realSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
-
-const HELP_AR =
-  '⚔️ <b>نظام الصياد جاهز</b>\n\n' +
-  'اكتب مهمتك مثل ما تتكلم، مثال:\n' +
-  '<code>مراجعة الكود 8 مساءً</code>\n\n' +
-  'وتقدر تضيف (كلها اختيارية):\n' +
-  '• الوقت: <code>8 مساءً</code> أو <code>7 الصبح</code> أو <code>9:30م</code>\n' +
-  '• اليوم: <code>بكرة</code> أو <code>بعد بكرة</code> أو <code>يوم 12</code>\n' +
-  '• <code>يومي</code> لو تتكرر كل يوم\n' +
-  '• الصعوبة: من <code>!E</code> (سهلة) إلى <code>!S</code> (أصعب شي)\n' +
-  '• القدرة: <code>#قوة #حيوية #رشاقة #ذكاء #انضباط</code>\n' +
-  'بدون وقت: اليومية 9 الصبح، واللي لمرة وحدة 5 مساءً.\n\n' +
-  'أرد عليك برابط، اضغطه فيفتح الموقع ويسألك قبل الإضافة.\n' +
-  '🔒 ما أحفظ رسائلك، والمهمة تنضاف في حسابك أنت بس.';
-
-const HELP_EN =
-  '⚔️ <b>The Hunter System is ready</b>\n\n' +
-  "Write your quest the way you'd say it, for example:\n" +
-  '<code>review the code 8pm</code>\n\n' +
-  'You can add (all optional):\n' +
-  '• a time: <code>8pm</code> or <code>7:30am</code>\n' +
-  '• a day: <code>tomorrow</code> or <code>day 12</code>\n' +
-  '• <code>daily</code> if it repeats every day\n' +
-  '• difficulty: <code>!E</code> (easy) to <code>!S</code> (hardest)\n' +
-  '• ability: <code>#strength #vitality #agility #intellect #discipline</code>\n' +
-  'No time: daily quests default to 9 am, one-time quests to 5 pm.\n\n' +
-  'I reply with a link. Open it and the site asks you before adding.\n' +
-  "🔒 I don't keep your messages, and the quest is added to your own account only.";
 
 const ARABIC = /[؀-ۿ]/;
 
@@ -149,17 +130,20 @@ const handled = new Map<number, number>();
 const failures = new Map<number, number>();
 const inFlight = new Map<number, Promise<void>>(); // تحديثات للحين تنعالج
 const counted = new Set<number>(); // تحديثات انحسبت في حد الرسائل: إعادة نفس التحديث ما تنحسب مرة ثانية
+const outcomes = new Map<number, Outgoing>(); // رد كل تحديث: الإعادة ترسله نفسه بدون ما نسأل الذكاء مرة ثانية
 const MAX_FAILS = 3;
 
 /** للاختبارات: يرجع الذاكرة لحالتها الأولى. */
 export function resetBotMemory() {
-  handled.clear(); failures.clear(); inFlight.clear(); counted.clear(); hits.clear(); floodUntil = 0;
+  handled.clear(); failures.clear(); inFlight.clear(); counted.clear(); hits.clear(); outcomes.clear(); floodUntil = 0;
+  resetAssistant();
 }
 
 function markHandled(id: number | undefined) {
   if (id === undefined) return;
   handled.set(id, Date.now());
   failures.delete(id);
+  outcomes.delete(id);
   if (handled.size > 5000) for (const k of handled.keys()) { handled.delete(k); if (handled.size <= 4000) break; }
 }
 
@@ -205,7 +189,7 @@ async function processUpdate(update: any, env: Env, send: Send, updateId: number
     counted.add(updateId);
     if (counted.size > 5000) for (const k of counted) { counted.delete(k); if (counted.size <= 4000) break; }
   }
-  if (fresh && rateLimited(msg.from.id)) {
+  if (fresh && rateLimited(msg.from.id, now())) {
     // نرد مرة وحدة بس لما يتعدى الحد، وبعدها نسكت لين تخلص الدقيقة
     if ((hits.get(msg.from.id) || []).length === RATE_MAX + 1) {
       await deliver(send, 'sendMessage', { chat_id: chatId, text: en ? '⏳ Too many messages, wait a minute.' : '⏳ رسائل كثيرة، انتظر دقيقة.' }, sleep, now);
@@ -213,20 +197,31 @@ async function processUpdate(update: any, env: Env, send: Send, updateId: number
     return;
   }
   if (!text || /^\/(start|help)(@\w+)?(\s|$)/i.test(text)) {
-    finish(await deliver(send, 'sendMessage', { chat_id: chatId, text: en ? HELP_EN : HELP_AR, parse_mode: 'HTML' }, sleep, now));
+    finish(await deliver(send, 'sendMessage', { chat_id: chatId, text: helpText(en, Boolean(env.ai?.key)), parse_mode: 'HTML' }, sleep, now));
     return;
   }
-  if (text.startsWith('/')) return; // أوامر ثانية: نتجاهلها
+  if (text.startsWith('/') && !/^\/cancel(@\w+)?$/i.test(text)) return; // أوامر ثانية: نتجاهلها
   if (text.length > MAX_LEN) {
     finish(await deliver(send, 'sendMessage', { chat_id: chatId, text: en ? '⚠️ That message is too long, keep it under 300 characters.' : '⚠️ الرسالة طويلة، خلها أقصر من 300 حرف.' }, sleep, now));
     return;
   }
-  const link = makeLink(env.siteUrl, text);
-  const reply = en
-    ? `📨 Quest received:\n<b>${escapeHtml(text)}</b>\n\nOpen the link to add it to the System:\n${escapeHtml(link)}`
-    : `📨 وصلت المهمة:\n<b>${escapeHtml(text)}</b>\n\nاضغط الرابط لإضافتها للنظام:\n${escapeHtml(link)}`;
-  const body: Record<string, unknown> = { chat_id: chatId, text: reply, parse_mode: 'HTML', link_preview_options: { is_disabled: true } };
-  if (buttonOk(link)) body.reply_markup = { inline_keyboard: [[{ text: en ? '⚔️ Add it to the System' : '⚔️ أضفها للنظام', url: link }]] };
+  let out = updateId !== undefined ? outcomes.get(updateId) : undefined;
+  if (!out) {
+    const forwarded = Boolean(msg.forward_origin || msg.forward_from || msg.forward_from_chat || msg.forward_sender_name || msg.forward_date);
+    out = await respond({ text, userId: msg.from.id, chatId, en, forwarded }, { siteUrl: env.siteUrl, ai: env.ai, now: env.now });
+    if (!out.code.startsWith('ok_')) console.warn('bot:', out.code); // رمز بس، بدون نص
+    if (updateId !== undefined) {
+      outcomes.set(updateId, out);
+      if (outcomes.size > 2000) for (const k of outcomes.keys()) { outcomes.delete(k); if (outcomes.size <= 1500) break; }
+    }
+  }
+  const body: Record<string, unknown> = { chat_id: chatId, text: out.text, link_preview_options: { is_disabled: true } };
+  if (out.html) body.parse_mode = 'HTML';
+  if (out.replyTo && typeof msg.message_id === 'number') body.reply_parameters = { message_id: msg.message_id, allow_sending_without_reply: true };
+  if (out.button) {
+    if (buttonOk(out.button.url)) body.reply_markup = { inline_keyboard: [[{ text: out.button.text, url: out.button.url }]] };
+    else body.text = out.text + '\n' + (out.html ? escapeHtml(out.button.url) : out.button.url); // رابط محلي (للتجربة): نكتبه بدل الزر
+  }
   finish(await deliver(send, 'sendMessage', body, sleep, now));
 }
 
@@ -243,8 +238,8 @@ export async function setup(env: Env, send: Send): Promise<{ ok: boolean; messag
     max_connections: 20,
   });
   if (!r.ok) return { ok: false, message: r.description || 'setWebhook failed' };
-  await send('setMyCommands', { commands: [{ command: 'start', description: 'طريقة الاستخدام' }] });
-  await send('setMyCommands', { commands: [{ command: 'start', description: 'How to use' }], language_code: 'en' });
+  await send('setMyCommands', { commands: [{ command: 'start', description: 'طريقة الاستخدام' }, { command: 'cancel', description: 'إلغاء طلب المهمة' }] });
+  await send('setMyCommands', { commands: [{ command: 'start', description: 'How to use' }, { command: 'cancel', description: 'Cancel the quest request' }], language_code: 'en' });
   return { ok: true, message: 'webhook set' };
 }
 
@@ -295,7 +290,8 @@ export async function serve(req: Request, env: Env, send: Send): Promise<Respons
   try {
     await handleUpdate(await req.json(), env, send);
   } catch (e) {
-    console.error('update failed', e instanceof Error ? e.message : e);
+    // اسم الخطأ بس: رسالته ممكن فيها جزء من التحديث (نص المستخدم)
+    console.error('update failed', e instanceof Error ? e.name : typeof e);
     // فشل إرسال مؤقت: 500 عشان تيليجرام يعيد التحديث (ينعالج مرة وحدة بفضل handled)
     if (e instanceof SendFailed) return new Response('retry', { status: 500 });
   }
@@ -313,6 +309,8 @@ if (D?.serve) {
     selfUrl: (D.env.get('SUPABASE_URL') || '').replace(/\/$/, '') + '/functions/v1/telegram-bot',
     setupKey: (D.env.get('SETUP_KEY') || '').trim(),
   };
+  const groqKey = (D.env.get('GROQ_API_KEY') || '').trim();
+  if (groqKey) env.ai = { key: groqKey, model: (D.env.get('GROQ_MODEL') || '').trim() || undefined };
   const send = telegramSender(token);
   D.serve((req: Request) => serve(req, env, send));
 }

@@ -397,3 +397,83 @@ test('منتصف الليل: مهمة يومية جديدة ما تنضاف لأ
   assert.deepEqual(c.call('fixedFor', '2026-10-27').map((q) => q.id), ['f1']);
   assert.deepEqual(c.call('fixedFor', '2026-10-28').map((q) => q.id), ['f1', 'f9']);
 });
+
+
+/* ===== روابط البوت بتاريخ ثابت (#quest) و#add مع يوم الإرسال (on) ===== */
+
+const questEntries = (o) => Object.entries({ quest: '1', ...o });
+
+test('#quest: التاريخ ينقرأ كما هو، ولو انفتح الرابط بعد يوم أو شهر أو سنة ما يتغير', () => {
+  const c = loadCore({ today: '2026-10-28' });
+  const link = questEntries({ t: 'أذاكر فيزياء', k: 'gate', d: '2026-10-29', h: '21:00', r: 'B', s: 'INT' });
+  for (const day of ['2026-10-28', '2026-10-29', '2026-10-30', '2026-11-29', '2027-10-29']) {
+    c.setToday(day);
+    const p = c.call('questFromLink', link);
+    assert.equal(p.date, '2026-10-29', day);
+    assert.deepEqual([p.kind, p.title, p.time, p.rank, p.stat, p.xp], ['gate', 'أذاكر فيزياء', '21:00', 'B', 'INT', 120], day);
+  }
+  // عبور الشهر والسنة: التاريخ نفسه بدون حساب
+  for (const d of ['2026-11-01', '2026-12-31', '2027-01-01', '2028-02-29']) {
+    assert.equal(c.call('questFromLink', questEntries({ t: 'x', k: 'gate', d, h: '00:15', r: 'E', s: 'SENSE' })).date, d);
+  }
+  const daily = c.call('questFromLink', questEntries({ t: 'أقرأ 10 صفحات', k: 'daily', h: '22:00', s: 'INT' }));
+  assert.deepEqual([daily.kind, daily.time, daily.xp, daily.title], ['fixed', '22:00', 30, 'أقرأ 10 صفحات']);
+  // العنوان ما ينقرأ كأوامر: «بكرة» و«يومي» و«8 مساء» و# تبقى في العنوان
+  const t = 'مراجعة بكرة يومي 8 مساء #ذكاء !A';
+  assert.equal(c.call('questFromLink', questEntries({ t, k: 'gate', d: '2026-10-29', h: '09:00', r: 'E', s: 'SENSE' })).title, t);
+});
+
+test('#quest: أي حقل غلط أو ناقص أو زايد أو مكرر = رابط غير صالح', () => {
+  const c = loadCore({ today: '2026-10-28' });
+  const ok = { t: 'مهمة', k: 'gate', d: '2026-10-29', h: '21:00', r: 'B', s: 'INT' };
+  assert.ok(c.call('questFromLink', questEntries(ok)));
+  const bad = [
+    { d: '2026-02-30' }, { d: '2026-13-01' }, { d: '29-10-2026' }, { d: '' },
+    { h: '25:99' }, { h: '9:00' }, { h: '' }, { r: 'Z' }, { r: '' }, { s: 'MAGIC' }, { k: 'weekly' },
+    { t: '' }, { t: '   ' }, { t: 'ا'.repeat(121) }
+  ];
+  for (const o of bad) assert.equal(c.call('questFromLink', questEntries({ ...ok, ...o })), null, JSON.stringify(o));
+  const { d, ...noDate } = ok;
+  assert.equal(c.call('questFromLink', questEntries(noDate)), null, 'بدون تاريخ');
+  assert.equal(c.call('questFromLink', questEntries({ ...ok, x: '1' })), null, 'حقل زايد');
+  assert.equal(c.call('questFromLink', [...questEntries(ok), ['d', '2026-10-30']]), null, 'حقل مكرر');
+  assert.equal(c.call('questFromLink', Object.entries({ ...ok, quest: '2' })), null, 'نسخة ثانية');
+  // اليومية ما تقبل تاريخ ولا صعوبة (متناقض)
+  assert.equal(c.call('questFromLink', questEntries({ t: 'x', k: 'daily', h: '09:00', s: 'INT', d: '2026-10-29' })), null);
+  assert.equal(c.call('questFromLink', questEntries({ t: 'x', k: 'daily', h: '09:00', s: 'INT', r: 'A' })), null);
+});
+
+test('#add مع on: «بكرة» تنحسب من يوم الإرسال، والروابط القديمة (بدون on) مثل قبل', () => {
+  const c = loadCore({ today: '2026-10-30' });
+  const a = c.call('addLinkParts', encodeURIComponent('أذاكر بكرة الساعة 9 الليل') + '&on=2026-10-28');
+  assert.deepEqual(a, { text: 'أذاكر بكرة الساعة 9 الليل', base: '2026-10-28' });
+  const p = c.call('parseQuick', a.text, { base: a.base });
+  assert.deepEqual([p.date, p.time, p.title], ['2026-10-29', '21:00', 'أذاكر']);
+  assert.equal(p.dateLabel, '29 أكتوبر', 'مو «بكرة» لأنه انفتح في يوم ثاني');
+  // القديم: من يوم الفتح، و«بكرة» تبقى «بكرة»
+  const old = c.call('addLinkParts', encodeURIComponent('أذاكر بكرة'));
+  assert.equal(old.base, undefined);
+  const q = c.call('parseQuick', old.text, { base: old.base });
+  assert.deepEqual([q.date, q.dateLabel], ['2026-10-31', 'بكرة']);
+  // عبور الشهر والسنة من on
+  assert.equal(c.call('parseQuick', 'مهمة بعد بكرة', { base: '2026-10-31' }).date, '2026-11-02');
+  assert.equal(c.call('parseQuick', 'مهمة بكرة', { base: '2026-12-31' }).date, '2027-01-01');
+  assert.equal(c.call('parseQuick', 'مهمة بكرة', { base: '2026-12-31' }).dateLabel, '1 يناير 2027');
+  assert.equal(c.call('parseQuick', 'مهمة اليوم', { base: '2026-10-28' }).date, '2026-10-28');
+  // روابط خربانة
+  for (const body of ['%E0%A4%A', encodeURIComponent('x') + '&on=2026-02-30', encodeURIComponent('x') + '&on=bad',
+    encodeURIComponent('x') + '&at=2026-10-28', encodeURIComponent('x') + '&on=2026-10-28&on=2026-10-29']) {
+    assert.equal(c.call('addLinkParts', body), null, body);
+  }
+  assert.equal(c.call('parseQuick', 'مهمة', { base: 'bad' }), null);
+});
+
+test('«يوم 31» في شهر ما فيه 31: أقرب شهر فيه هذا اليوم، مو أول الشهر اللي بعده', () => {
+  const c = loadCore({ today: '2026-11-05' });
+  assert.equal(c.call('parseQuick', 'تسليم يوم 31').date, '2026-12-31');
+  assert.equal(c.call('parseQuick', 'تسليم يوم 30', { base: '2027-02-01' }).date, '2027-03-30');
+  assert.equal(c.call('parseQuick', 'تسليم يوم 29', { base: '2027-02-01' }).date, '2027-03-29');
+  assert.equal(c.call('parseQuick', 'تسليم يوم 29', { base: '2028-02-01' }).date, '2028-02-29');
+  assert.equal(c.call('parseQuick', 'تسليم يوم 5').date, '2026-11-05');
+  assert.equal(c.call('parseQuick', 'تسليم يوم 4').date, '2026-12-04');
+});

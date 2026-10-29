@@ -85,7 +85,7 @@ test('الأقسام ما تسأل «أي واجهة؟»: الفرق كله في
 });
 
 test('شرح الوقت الافتراضي (الموقع والبوت): اليومية 9 الصبح، واللي لمرة وحدة 5 مساءً', () => {
-  const bot = readFileSync(new URL('../supabase/functions/telegram-bot/index.ts', import.meta.url), 'utf8');
+  const bot = readFileSync(new URL('../supabase/functions/telegram-bot/assistant.ts', import.meta.url), 'utf8'); // نص /start في assistant.ts (helpText)
   const hint = html.match(/<p class="quick-hint" id="quickHint"[^>]*>[^<]*<\/p>/)[0];
   for (const [name, text] of [['index.html', hint], ['telegram-bot', bot]]) {
     assert.match(text, /بدون وقت: اليومية 9 الصبح، واللي لمرة وحدة 5 مساءً/, name);

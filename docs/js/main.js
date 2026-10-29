@@ -101,7 +101,7 @@ function bind() {
 // بعد الدخول: يضيف مهمة البوت لو فيه، ويسأل عن الاسم أول مرة
 function afterEntry() {
   importFromHash();
-  if (!state.name && !store.get(STORE_KEYS.nameAsked) && !location.hash.startsWith('#add=')) {
+  if (!state.name && !store.get(STORE_KEYS.nameAsked) && !/^#(add|quest)=/.test(location.hash)) {
     store.set(STORE_KEYS.nameAsked, '1');
     setTimeout(() => { if (!document.querySelector('dialog[open]')) openNameDialog(true); }, 900);
   }
