@@ -2,6 +2,12 @@
 /* نظام الصياد — boot.js
    يشتغل قبل أول رسم: يطبّق الواجهة واللغة المحفوظة، ويقرر إذا تطلع شاشة الدخول.
    (كان داخل index.html، وانتقل لملف لحاله عشان سياسة الأمان CSP تمنع أي سكربت داخل الصفحة) */
+// منع التضمين (clickjacking): لو الموقع انفتح داخل إطار في صفحة ثانية، يختفي ويحاول يفتح نفسه برا الإطار.
+// GitHub Pages ما يسمح بهيدر X-Frame-Options، وframe-ancestors ما يشتغل من وسم meta، فهذا البديل
+if (window.top !== window.self) {
+  document.documentElement.style.display = 'none';
+  try { window.top.location.replace(window.self.location.href); } catch (e) {}
+}
 // مفاتيح التخزين في المتصفح، بمكان واحد. هذا أول ملف يتحمّل، فكل الملفات بعده تستخدمها
 const STORE_KEYS = Object.freeze({
   state: 'hunterSystem_v6', theme: 'hunterTheme_v6', lang: 'hunterLang_v6', guest: 'hunterGuest_v6',
