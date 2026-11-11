@@ -364,6 +364,11 @@ function bindQuick() {
   const preview = () => { const p = readQuick(); if (p) quickChips(p); else $('quickHint').textContent = HINT; $('quickHint').classList.toggle('chips', Boolean(p)); };
   $('quickInput').addEventListener('input', preview);
   document.querySelectorAll('input[name="repeat"]').forEach((r) => r.addEventListener('change', preview));
+  // الجوال: الشرح مطوي تحت زر «؟» (المعاينة وأنت تكتب تطلع دايماً)
+  $('quickHelp').addEventListener('click', () => {
+    const open = $('quickHint').classList.toggle('open');
+    $('quickHelp').setAttribute('aria-expanded', String(open));
+  });
 }
 
 function bindTaskTools() {

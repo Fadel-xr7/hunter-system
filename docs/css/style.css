@@ -384,8 +384,6 @@ select option { background: var(--bg); color: var(--text); }
 }
 @media (max-width: 600px) {
   .topbar { padding: 8px 16px; }
-  #toasts { top: 120px; }
-  .tabs { order: 3; width: 100%; justify-content: space-around; gap: 8px; }
   .hero-body { padding: 22px 16px 26px; }
   .streak-block { margin-inline-start: 0; align-items: flex-start; }
   .layout, [data-theme="ink"] .layout { padding: 22px 16px 48px; }
@@ -1314,3 +1312,133 @@ dialog.panel:modal { position: fixed; }
 .site-footer p { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0 6px; margin: 0; }
 .site-footer a { display: inline-flex; align-items: center; min-height: 44px; color: inherit; text-underline-offset: 4px; }
 .site-footer a:hover { color: var(--text); }
+
+/* =====================================================================
+   18. الجوال: شريط تنقل تحت، رأس مضغوط، والمهام أول الشاشة
+   ===================================================================== */
+.tab svg, .quick-help { display: none; }
+
+@media (max-width: 600px) {
+  /* --- الشريط العلوي: سطر واحد (الاسم + الأزرار) --- */
+  .topbar { flex-wrap: nowrap; gap: 6px; padding: max(6px, env(safe-area-inset-top)) 12px 6px; }
+  [data-theme="ink"] .topbar { padding: max(8px, env(safe-area-inset-top)) 12px 6px; }
+  /* الاسم لو ما كفاه السطر ينزل سطرين (شاشات 360 والإنجليزي) بدل ما ينقص */
+  .brand { flex: 0 1 auto; min-width: 0; font-size: 17px; line-height: 1.1; }
+  [data-theme="ink"] .brand { font-size: 20px; line-height: 1.05; }
+  html:lang(en) .brand { font-size: 15px; }
+  html:lang(en)[data-theme="ink"] .brand { font-size: 18px; }
+  [data-theme="anime"] .brand { gap: 8px; padding-inline-start: 3px; }
+  [data-theme="anime"] .brand::before { flex: none; width: 13px; height: 13px; }
+  [data-theme="ink"] .brand::before { flex: none; width: 18px; height: 18px; }
+  .tools { flex: none; gap: 3px; }
+  .icon-btn { width: 38px; }
+  [data-theme="ink"] .tools { gap: 0; }
+  #toasts { top: 64px; }
+
+  /* --- التنقل: شريط ثابت تحت، بالإبهام --- */
+  .tabs { position: fixed; z-index: 30; inset-inline: 0; bottom: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; padding: 0 10px env(safe-area-inset-bottom); }
+  .tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 58px; padding: 7px 4px 6px; font-size: 12px; line-height: 1.2; border-bottom: none; border-top: 2px solid transparent; }
+  .tab svg { display: block; width: 22px; height: 22px; stroke-width: 1.6; }
+  .tab[aria-current="page"] { border-bottom-color: transparent; }
+  [data-theme="anime"] .tabs { background: rgba(3, 7, 18, .98); border-top: 1px solid rgba(127, 232, 255, .3); box-shadow: 0 -10px 28px -14px rgba(127, 232, 255, .55); }
+  [data-theme="anime"] .tab[aria-current="page"] { color: var(--acc); border-top-color: var(--acc); text-shadow: 0 0 12px rgba(127, 232, 255, .7); }
+  [data-theme="anime"] .tab[aria-current="page"] svg { filter: drop-shadow(0 0 5px rgba(127, 232, 255, .8)); }
+  [data-theme="ink"] .tabs { background: var(--bg); border-top: 1px solid var(--line); }
+  [data-theme="ink"] .tab[aria-current="page"] { color: var(--acc); text-decoration: none; }
+  html:not(.need-auth) body { padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
+  .site-footer { padding-bottom: 16px; }
+
+  /* --- ترتيب «اليوم»: البطل المضغوط، المهام، اللمحة، التركيز، السجل، الألقاب --- */
+  #view-today:not([hidden]) { display: flex; flex-direction: column; gap: 16px; padding-bottom: 28px; }
+  #view-today .layout, #view-today .col-main, #view-today .col-side { display: contents; }
+  #view-today .layout .panel { margin-inline: 16px; }
+  #hero { order: 0; }
+  #tasksPanel { order: 1; }
+  #statCards { order: 2; }
+  #focusPanel { order: 3; }
+  #heatPanel { order: 4; }
+  #achMini { order: 5; }
+  [data-theme="anime"] .stat-cards.panel { margin-top: 0; }
+  [data-theme="ink"] #view-today { gap: 16px; }
+  [data-theme="ink"] .stat-cards { padding: 14px 0; border-top: 1px solid var(--line); }
+
+  /* --- البطل المضغوط (الواجهتين) --- */
+  .hero-body { padding: 12px 16px 12px; gap: 12px; }
+  .lvl-row { gap: 12px; }
+  .lvl-num { font-size: 68px; }
+  .who { gap: 3px; padding-bottom: 2px; }
+  .hname { font-size: 24px; }
+  .lvl-row .who { flex: 1 1 auto; min-width: 0; }
+  .lvl-row .chips { gap: 6px; }
+  .rank-chip, .title-chip, [data-theme="ink"] .title-chip { font-size: 12px; padding: 2px 8px; white-space: nowrap; }
+  .title-chip { gap: 4px; }
+  .title-chip .crown { width: 13px; height: 13px; }
+  .xp-meta { font-size: 12px; }
+  .subtitle { padding: 6px 16px 10px; font-size: 14px; }
+
+  /* الأنمي: نافذة [الحالة] سطرين: السلسلة، ثم القدرات الخمس جنب بعض */
+  [data-theme="anime"] .hero-anime { min-height: 0; }
+  .hero-anime .lvl-block { gap: 9px; }
+  .rank-trial { gap: 6px 14px; padding: 7px 10px; }
+  .rt-rows { gap: 6px 14px; }
+  .rt-row { gap: 3px; }
+  .status-win { gap: 9px; padding: 10px 14px 12px; }
+  .status-win .win-tab { display: none; }
+  .st-streak { gap: 10px; padding-bottom: 9px; }
+  .st-streak .flame { width: 24px; height: 24px; }
+  .st-streak .streak-num { font-size: 38px; }
+  .st-side { flex: 1 1 auto; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2px 12px; }
+  .st-abil { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+  .st-abil .ab:last-child:nth-child(odd) { grid-column: auto; }
+  .ab-top { flex-direction: column; align-items: center; gap: 0; }
+  .ab-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+  .ab-val { font-size: 16px; line-height: 1.3; }
+  .ab-bar { height: 3px; margin-top: 3px; }
+
+  /* حبر الليل: المستوى فوق، وتحته القمر الصغير جنب السلسلة */
+  .hero-ink { padding: 12px 16px 0; }
+  [data-theme="ink"] .lvl-num { font-size: 72px; }
+  [data-theme="ink"] .hname { font-size: 28px; }
+  .hero-ink .ink-grid { grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 14px 18px; padding-bottom: 14px; }
+  .hero-ink .lvl-block { grid-column: 1 / -1; }
+  [data-theme="ink"] .rank-trial { margin-top: 2px; padding-top: 8px; }
+  [data-theme="ink"] .rt-title { font-size: 18px; }
+  .moon-wrap { width: 76px; }
+  .moon-name { font-size: 20px; }
+  .moon-sub { font-size: 12px; }
+  .hero-ink .streak-block { gap: 6px; }
+  [data-theme="ink"] .hero-ink .streak-num { font-size: 64px; }
+  [data-theme="ink"] .ink-streak-side .streak-lbl { font-size: 20px; }
+  .ink-streak-row { gap: 10px; }
+  .hero-ink .subtitle { padding: 7px 0; font-size: 14px; line-height: 1.5; }
+
+  /* --- لوحة المهام: عنوان مضغوط، وأزرارها بسطر واحد --- */
+  #tasksPanel .panel-head { margin-bottom: 10px; }
+  [data-theme="anime"] #tasksPanel .panel-head { flex-direction: row; justify-content: space-between; gap: 6px 10px; }
+  [data-theme="anime"] #tasksTitle { width: auto; font-size: 22px; }
+  [data-theme="anime"] #tasksTitle::before, [data-theme="anime"] #tasksTitle::after { display: none; }
+  [data-theme="anime"] #tasksPanel .head-actions { margin-top: 0; }
+  #tasksPanel .head-actions { flex-wrap: nowrap; width: 100%; gap: 6px; }
+  #tasksPanel .head-actions .ghost-btn { flex: 1 1 0; min-width: 0; padding: 6px 4px; font-size: 13px; line-height: 1.2; white-space: normal; }
+  [data-theme="ink"] .panel h2 { font-size: 28px; }
+  [data-theme="ink"] #tasksTitle { font-size: 30px; line-height: 1.15; }
+
+  /* --- الإضافة السريعة: الخانة وزر «أضف» بسطر واحد، والشرح تحت زر «؟» --- */
+  .quick { gap: 8px; margin-bottom: 10px; }
+  .quick-field { order: 1; flex: 1 1 0; }
+  [data-theme="ink"] .quick-field input[type="text"] { padding-left: 44px; }
+  [dir="ltr"][data-theme="ink"] .quick-field input[type="text"] { padding-left: 2px; padding-right: 44px; }
+  .quick .main-btn { order: 2; flex: none; padding-inline: 16px; }
+  .quick .seg { order: 3; flex: 1 1 100%; }
+  .quick .seg label { flex: 1 1 0; }
+  .quick .seg span { flex: 1 1 auto; min-height: 38px; font-size: 13px; }
+  /* «مرة وحدة / كل يوم» يطلع أول ما تكتب (أو لو «كل يوم» مختار)، فالقائمة تبقى قريبة */
+  .quick:has(#quickInput:placeholder-shown):not(:has(input[value="daily"]:checked)) .seg { display: none; }
+  .quick-hint { order: 4; }
+  .quick-hint:not(.chips):not(.open) { display: none; }
+  .slash-key { display: none; }
+  .quick-help { display: grid; place-items: center; position: absolute; inset-block: 0; left: 0; width: 44px; padding: 0; background: none; border: none; color: var(--acc); font-family: var(--display); font-size: 17px; font-weight: 700; }
+  .quick-help::before { content: ''; position: absolute; width: 26px; height: 26px; border: 1px solid currentColor; border-radius: 50%; opacity: .6; }
+  .quick-help[aria-expanded="true"]::before { opacity: 1; background: var(--soft); }
+  [dir="ltr"] .quick-help { left: auto; right: 0; }
+}
