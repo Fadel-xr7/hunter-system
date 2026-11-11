@@ -59,6 +59,10 @@ LOOKS.ink = {
     morning: (hey, now) => (now.getHours() < 12 ? L('صباح الخير', 'Good morning') : L('مساء الخير', 'Good evening')) + hey
   },
 
+  rankName: (r) => L('صياد رتبة ' + r.l, r.l + '-Rank Hunter'),
+  trialTitle: (r) => L('اختبار الرتبة ', 'Rank ') + r.l + L('', ' trial'),
+  minuteTick() {},              // القائمة نفسها تنرسم كل دقيقة (liveNowLine)
+
   afterView() {},
 
   /* ---------- الرأس ---------- */

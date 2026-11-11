@@ -37,7 +37,7 @@ function renderHero(si) {
         el('span', { class: 'muted', text: L('المستوى', 'Level') }),
         nameButton('hname'),
         el('div', { class: 'chips' },
-          el('span', { class: 'rank-chip', text: L('صياد رتبة ' + cur.l, cur.l + '-Rank Hunter') }),
+          el('span', { class: 'rank-chip', text: look().rankName(cur) }),
           ttl ? el('span', { class: 'title-chip', title: L('لقبك الحالي', 'Your current title') }, crownIcon(), ttl.name) : null))),
     look().xpBar(lv),
     el('div', { class: 'xp-meta' },
@@ -60,7 +60,7 @@ function rankTrial(next, level, reach) {
     el('span', { class: 'rt-top' }, el('span', { text: label }), el('span', { class: 'rt-val', dir: 'ltr', text: v + ' / ' + need })),
     el('span', { class: 'rt-bar' }, el('span', { style: 'width:' + Math.min(100, Math.round(v / need * 100)) + '%' })));
   return el('div', { class: 'rank-trial' },
-    el('span', { class: 'rt-title', text: L('اختبار الرتبة ', 'Rank ') + next.l + L('', ' trial') }),
+    el('span', { class: 'rt-title', text: look().trialTitle(next) }),
     el('div', { class: 'rt-rows' }, row(L('المستوى', 'Level'), level, next.lv), row(L('السلسلة', 'Streak'), reach, next.streak)));
 }
 

@@ -8,25 +8,31 @@
 
 /* ============ 1. الألوان والخطوط ============ */
 :root, [data-theme="anime"] {
-  --bg: #040915;
-  --text: #DDEBFF;
-  --bright: #EAFBFF;
-  --muted: #8FB3D9;
-  --muted2: #B9D3EE;
-  --acc: #7FE8FF;
-  --acc2: #C4A8FF;
-  --ember: #FF9A3C;
-  --ember2: #FFD2A6;
-  --line: rgba(127, 232, 255, .35);
-  --soft: rgba(127, 232, 255, .12);
-  --field: rgba(2, 8, 20, .65);
+  --bg: #070B1A;
+  --card: #0B1124;
+  --rule: #1C2440;
+  --text: #E9ECF5;
+  --bright: #FFFFFF;
+  --muted: #9AA3BD;
+  --muted2: #B4BCD2;
+  --acc: #F2C96B;
+  --acc2: #8FB8FF;
+  --acc-rgb: 242 201 107;
+  --acc2-rgb: 143 184 255;
+  --ember: #FF9A6B;
+  --ember2: #F2C96B;
+  --line: rgba(154, 163, 189, .26);
+  --soft: rgba(242, 201, 107, .08);
+  --field: #070B1A;
   --rest: #6FE3A5;
   /* ألوان القدرات: نفسها جنب المهمة وفي الرادار */
   --s-STR: #F49A8F; --s-VIT: #8ED8B0; --s-AGI: #F2A7C8; --s-INT: #8FB8FF; --s-SENSE: #E8D48A;
-  --display: 'Reem Kufi', 'Alexandria', sans-serif;
-  --body: 'Alexandria', system-ui, sans-serif;
+  --display: 'Reem Kufi', 'IBM Plex Sans Arabic', sans-serif;
+  --body: 'IBM Plex Sans Arabic', system-ui, sans-serif;
 }
 [data-theme="ink"] {
+  --acc-rgb: 240 163 94;
+  --acc2-rgb: 237 230 214;
   --bg: #10222B;
   --text: #EDE6D6;
   --bright: #EDE6D6;
@@ -85,23 +91,15 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round
 [data-theme="ink"] .tab[aria-current="page"] { border-bottom-color: transparent; text-decoration: underline 2px var(--acc); text-underline-offset: 9px; }
 [data-theme="ink"] .icon-btn { border: none; color: var(--muted); border-radius: 50%; }
 [data-theme="ink"] .menu { border-radius: 10px; }
-
-/* ============ 4. البطل ============ */
-/* --- أنمي: لقطة سينمائية فوق البوابة --- */
-.hero-anime { position: relative; overflow: hidden; display: flex; flex-direction: column; min-height: 470px;
-  background: linear-gradient(180deg, rgba(4, 9, 21, 0) 50%, rgba(4, 9, 21, .82) 86%, #040915 100%), linear-gradient(270deg, rgba(4, 9, 21, .94) 0%, rgba(4, 9, 21, .55) 40%, rgba(4, 9, 21, .18) 72%, rgba(4, 9, 21, .62) 100%), url(../assets/dungeon-gate.webp) center 40% / cover no-repeat; }
-.hero-anime .avatar { position: absolute; top: 0; bottom: 48px; right: -10px; width: 430px; pointer-events: none; }
-.hero-anime .avatar img { width: 100%; height: 100%; object-fit: cover; object-position: center 18%; display: block; mix-blend-mode: lighten;
-  -webkit-mask-image: radial-gradient(ellipse 60% 70% at 50% 45%, #000 55%, transparent 100%); mask-image: radial-gradient(ellipse 60% 70% at 50% 45%, #000 55%, transparent 100%); }
 .hero-body { position: relative; flex: 1 1 auto; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 28px; padding: 28px 32px 34px; }
 .lvl-block { margin-right: 370px; flex: 1 1 340px; max-width: 540px; display: flex; flex-direction: column; gap: 12px; }
 .lvl-row { display: flex; align-items: flex-end; gap: 18px; }
-.lvl-num { font-family: var(--display); font-weight: 700; font-size: 150px; line-height: .78; color: var(--bright); text-shadow: 0 0 18px rgba(127, 232, 255, .75), 0 0 2px #fff; }
+.lvl-num { font-family: var(--display); font-weight: 700; font-size: 150px; line-height: .78; color: var(--bright); text-shadow: 0 0 18px rgb(var(--acc-rgb) / .75), 0 0 2px #fff; }
 .who { display: flex; flex-direction: column; gap: 6px; padding-bottom: 6px; }
 .hname { align-self: flex-start; background: none; border: none; padding: 0; font-family: var(--display); font-weight: 700; font-size: 34px; line-height: 1.1; color: var(--bright); border-bottom: 1px dashed transparent; }
 .hname:hover { border-bottom-color: var(--acc); }
-.rank-chip { align-self: flex-start; font-size: 14px; padding: 3px 12px; border: 1px solid var(--acc); color: var(--acc); background: rgba(127, 232, 255, .1); }
-.xpbar { height: 6px; background: rgba(127, 232, 255, .15); position: relative; }
+.rank-chip { align-self: flex-start; font-size: 14px; padding: 3px 12px; border: 1px solid var(--acc); color: var(--acc); background: rgb(var(--acc-rgb) / .1); }
+.xpbar { height: 6px; background: rgb(var(--acc-rgb) / .15); position: relative; }
 .xpbar span { position: absolute; inset: 0 0 0 auto; background: var(--acc); box-shadow: 0 0 14px var(--acc); transition: width .6s ease; }
 .xp-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; font-size: 14px; color: var(--muted2); }
 .streak-block { margin-inline-start: auto; display: flex; flex-direction: column; align-items: center; gap: 6px; }
@@ -144,8 +142,8 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round
 .panel-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-bottom: 14px; }
 .count { font-size: 14px; color: var(--muted); }
 .head-actions { margin-inline-start: auto; display: flex; gap: 8px; }
-.main-btn { min-height: 44px; padding: 9px 20px; font-weight: 600; background: rgba(127, 232, 255, .12); color: var(--bright); border: 1px solid var(--acc); transition: background .2s ease, box-shadow .2s ease, color .2s ease; }
-.main-btn:hover { background: rgba(127, 232, 255, .22); box-shadow: 0 0 18px -4px var(--acc); }
+.main-btn { min-height: 44px; padding: 9px 20px; font-weight: 600; background: rgb(var(--acc-rgb) / .12); color: var(--bright); border: 1px solid var(--acc); transition: background .2s ease, box-shadow .2s ease, color .2s ease; }
+.main-btn:hover { background: rgb(var(--acc-rgb) / .22); box-shadow: 0 0 18px -4px var(--acc); }
 .ghost-btn { min-height: 44px; padding: 8px 14px; font-size: 14px; background: transparent; color: var(--muted2); border: 1px solid var(--line); transition: background .2s ease, color .2s ease; }
 .ghost-btn:hover { background: var(--soft); color: var(--bright); }
 .ghost-btn[aria-pressed="true"] { color: var(--ember2); border-color: var(--ember); }
@@ -155,7 +153,7 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round
 .mini.danger:hover { color: #FFB4B4; border-color: #FF8A8A; }
 .row-btns { display: flex; flex-wrap: wrap; gap: 10px; }
 .note, .empty { font-size: 14px; color: var(--muted); margin: 8px 0 0; }
-.bar { height: 4px; background: rgba(127, 232, 255, .15); position: relative; }
+.bar { height: 4px; background: rgb(var(--acc-rgb) / .15); position: relative; }
 .bar span { position: absolute; inset: 0 0 0 auto; background: var(--acc); transition: width .4s ease; }
 label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); }
 input[type="text"], input[type="email"], input[type="password"], input[type="number"], input[type="time"], input[type="date"], select { min-height: 44px; padding: 8px 12px; font-size: 15px; background: var(--field); color: var(--text); border: 1px solid var(--line); }
@@ -170,10 +168,10 @@ select option { background: var(--bg); color: var(--text); }
     linear-gradient(var(--acc), var(--acc)) bottom left / 22px 2px no-repeat, linear-gradient(var(--acc), var(--acc)) bottom left / 2px 22px no-repeat,
     linear-gradient(180deg, rgba(14, 40, 82, .88), rgba(6, 16, 38, .92));
   border: 1px solid var(--line);
-  box-shadow: 0 0 0 1px rgba(127, 232, 255, .08), 0 0 28px -6px rgba(127, 232, 255, .45), inset 0 0 40px -18px rgba(127, 232, 255, .5);
+  box-shadow: 0 0 0 1px rgb(var(--acc-rgb) / .08), 0 0 28px -6px rgb(var(--acc-rgb) / .45), inset 0 0 40px -18px rgb(var(--acc-rgb) / .5);
 }
 [data-theme="anime"] #tasksPanel .panel-head { justify-content: center; }
-[data-theme="anime"] #tasksTitle { display: inline-flex; align-items: center; gap: 12px; padding: 6px 22px; border: 1px solid rgba(127, 232, 255, .55); background: rgba(127, 232, 255, .06); font-size: 24px; text-shadow: 0 0 18px rgba(127, 232, 255, .75); }
+[data-theme="anime"] #tasksTitle { display: inline-flex; align-items: center; gap: 12px; padding: 6px 22px; border: 1px solid rgb(var(--acc-rgb) / .55); background: rgb(var(--acc-rgb) / .06); font-size: 24px; text-shadow: 0 0 18px rgb(var(--acc-rgb) / .75); }
 [data-theme="anime"] #tasksTitle::before { content: '!'; width: 22px; height: 22px; display: grid; place-items: center; border: 1.5px solid var(--acc); transform: rotate(45deg); font-size: 13px; color: var(--acc); text-shadow: none; }
 [data-theme="anime"] #tasksPanel .head-actions { margin-inline-start: 0; }
 [data-theme="anime"] #tasksPanel .panel-head { flex-direction: column; }
@@ -197,14 +195,14 @@ select option { background: var(--bg); color: var(--text); }
 /* ============ 6. المهام ============ */
 .quick { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
 .quick input { flex: 1 1 260px; min-width: 0; }
-[data-theme="anime"] .quick input { border: none; border-bottom: 1px solid rgba(127, 232, 255, .55); }
+[data-theme="anime"] .quick input { border: none; border-bottom: 1px solid rgb(var(--acc-rgb) / .55); }
 .quick-hint { flex-basis: 100%; margin: 0; font-size: 13px; color: var(--muted); }
 .grp { margin: 14px 0 2px; font-size: 13px; font-weight: 400; color: var(--acc); }
 .grp.gates { color: var(--acc2); }
 .tasks, .upcoming, .timeline { list-style: none; margin: 0; padding: 0; }
 .task-li { display: flex; align-items: center; gap: 6px; }
 .task { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 14px; width: 100%; padding: 12px 8px; min-height: 52px; background: transparent; border: none; text-align: right; transition: background .2s ease; }
-.task:hover { background: rgba(127, 232, 255, .07); }
+.task:hover { background: rgb(var(--acc-rgb) / .07); }
 .row-tools { display: flex; gap: 6px; flex: none; }
 
 /* أنمي */
@@ -215,12 +213,12 @@ select option { background: var(--bg); color: var(--text); }
 .task.done .dia.gate { background: var(--acc2); box-shadow: 0 0 14px var(--acc2); }
 [data-theme="anime"] .task .title { font-size: 17px; color: #EAF3FF; overflow-wrap: anywhere; }
 [data-theme="anime"] .task.done .title { color: #7F9BBE; }
-.task .lead { flex: 1 1 24px; border-bottom: 2px dotted rgba(127, 232, 255, .3); transform: translateY(4px); transition: border-color .2s ease; }
-.task:hover .lead { border-color: rgba(127, 232, 255, .65); }
+.task .lead { flex: 1 1 24px; border-bottom: 2px dotted rgb(var(--acc-rgb) / .3); transform: translateY(4px); transition: border-color .2s ease; }
+.task:hover .lead { border-color: rgb(var(--acc-rgb) / .65); }
 [data-theme="anime"] .task .time { font-size: 13px; color: var(--muted); }
 .ctr { font-family: var(--display); font-weight: 700; font-size: 17px; color: var(--muted); min-width: 46px; text-align: left; }
-.task.done .ctr { color: var(--acc); text-shadow: 0 0 10px rgba(127, 232, 255, .6); }
-.rank { font-family: var(--display); font-weight: 700; font-size: 15px; color: var(--acc2); padding: 0 7px; border: 1px solid rgba(196, 168, 255, .6); flex: none; }
+.task.done .ctr { color: var(--acc); text-shadow: 0 0 10px rgb(var(--acc-rgb) / .6); }
+.rank { font-family: var(--display); font-weight: 700; font-size: 15px; color: var(--acc2); padding: 0 7px; border: 1px solid rgb(var(--acc2-rgb) / .6); flex: none; }
 .late { font-size: 12px; color: var(--ember2); border: 1px solid var(--ember); padding: 0 6px; flex: none; }
 .task.pop .dia { animation: pop .45s cubic-bezier(.3, 1.6, .5, 1); }
 @keyframes pop { 0% { transform: rotate(45deg) scale(2.2); filter: brightness(2.5); } 100% { transform: rotate(45deg) scale(1); } }
@@ -264,7 +262,7 @@ select option { background: var(--bg); color: var(--text); }
 /* ============ 7. المؤقت والإنجازات والخريطة ============ */
 #focusPanel { display: flex; flex-direction: column; gap: 14px; }
 .timer { text-align: center; font-family: var(--display); font-weight: 700; font-size: 76px; line-height: 1; color: var(--bright); direction: ltr; font-variant-numeric: tabular-nums; }
-[data-theme="anime"] .timer { text-shadow: 0 0 18px rgba(127, 232, 255, .75), 0 0 2px #fff; }
+[data-theme="anime"] .timer { text-shadow: 0 0 18px rgb(var(--acc-rgb) / .75), 0 0 2px #fff; }
 .timer.running { animation: blink 1.1s ease-in-out infinite; }
 [data-theme="ink"] .timer { text-align: right; font-size: 84px; }
 [data-theme="ink"] .timer.running { animation: none; color: var(--acc); }
@@ -295,14 +293,14 @@ select option { background: var(--bg); color: var(--text); }
 .wd { font-size: 11px; color: var(--muted); text-align: center; padding-bottom: 2px; }
 .cell { height: 20px; display: grid; place-items: center; }
 .cell i { display: block; }
-[data-theme="anime"] .cell i { width: 12px; height: 12px; transform: rotate(45deg); background: rgba(127, 232, 255, .1); }
-[data-theme="anime"] .cell.l1 i { background: rgba(127, 232, 255, .32); }
-[data-theme="anime"] .cell.l2 i { background: rgba(127, 232, 255, .62); }
+[data-theme="anime"] .cell i { width: 12px; height: 12px; transform: rotate(45deg); background: rgb(var(--acc-rgb) / .1); }
+[data-theme="anime"] .cell.l1 i { background: rgb(var(--acc-rgb) / .32); }
+[data-theme="anime"] .cell.l2 i { background: rgb(var(--acc-rgb) / .62); }
 [data-theme="anime"] .cell.l3 i { background: var(--acc); box-shadow: 0 0 8px var(--acc); }
-[data-theme="anime"] .cell.rest i { background: rgba(196, 168, 255, .5); }
+[data-theme="anime"] .cell.rest i { background: rgb(var(--acc2-rgb) / .5); }
 [data-theme="anime"] .cell.today i { outline: 1px solid #fff; outline-offset: 2px; }
 .cell.future i { background: transparent !important; box-shadow: none !important; }
-[data-theme="anime"] .cell.future i { border: 1px solid rgba(127, 232, 255, .14); }
+[data-theme="anime"] .cell.future i { border: 1px solid rgb(var(--acc-rgb) / .14); }
 .cell.before i { opacity: .25; }
 [data-theme="ink"] .cell i { border-radius: 50%; width: 3px; height: 3px; background: rgba(237, 230, 214, .22); }
 [data-theme="ink"] .cell.l1 i { width: 7px; height: 7px; background: #C9C2B2; }
@@ -319,7 +317,7 @@ select option { background: var(--bg); color: var(--text); }
 .numbers { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 18px; }
 .num { display: flex; flex-direction: column; gap: 2px; padding: 16px 0; border-top: 1px solid var(--line); }
 .num b { font-family: var(--display); font-size: 44px; line-height: 1.1; color: var(--bright); }
-[data-theme="anime"] .num b { text-shadow: 0 0 14px rgba(127, 232, 255, .5); }
+[data-theme="anime"] .num b { text-shadow: 0 0 14px rgb(var(--acc-rgb) / .5); }
 .num span { font-size: 14px; color: var(--muted); }
 .charts { display: flex; flex-wrap: wrap; gap: 26px; }
 .charts > .panel { flex: 1 1 340px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
@@ -332,7 +330,7 @@ select option { background: var(--bg); color: var(--text); }
 .xp-svg .dot { fill: var(--acc); stroke: none; }
 .lbl { fill: var(--muted); stroke: none; font-size: 12px; font-family: var(--body); }
 .radar-svg .area { fill: var(--acc); fill-opacity: .2; stroke: var(--acc); stroke-width: 2; }
-[data-theme="anime"] .xp-svg .line, [data-theme="anime"] .radar-svg .area { filter: drop-shadow(0 0 6px rgba(127, 232, 255, .7)); }
+[data-theme="anime"] .xp-svg .line, [data-theme="anime"] .radar-svg .area { filter: drop-shadow(0 0 6px rgb(var(--acc-rgb) / .7)); }
 .ach-form { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto; gap: 12px; align-items: end; margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
 #achList .ach { padding: 4px 0; }
 
@@ -351,7 +349,7 @@ select option { background: var(--bg); color: var(--text); }
 .day input { accent-color: var(--acc); }
 
 #toasts { position: fixed; top: 92px; left: 50%; transform: translateX(-50%); z-index: 60; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; width: max-content; max-width: calc(100vw - 24px); }
-.toast { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 12px; padding: 12px 22px; background: rgba(6, 16, 38, .96); border: 1px solid var(--acc); box-shadow: 0 0 26px -4px rgba(127, 232, 255, .6); animation: tin .45s cubic-bezier(.2, .9, .25, 1) both; }
+.toast { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 12px; padding: 12px 22px; background: rgba(6, 16, 38, .96); border: 1px solid var(--acc); box-shadow: 0 0 26px -4px rgb(var(--acc-rgb) / .6); animation: tin .45s cubic-bezier(.2, .9, .25, 1) both; }
 .toast.out { animation: tout .45s ease forwards; }
 @keyframes tin { from { transform: translateY(-24px) scaleY(.05); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes tout { to { transform: translateY(-12px); opacity: 0; } }
@@ -378,7 +376,6 @@ select option { background: var(--bg); color: var(--text); }
 
 /* ============ 10. الجوال وتقليل الحركة ============ */
 @media (max-width: 900px) {
-  .hero-anime .avatar { opacity: .35; width: 340px; }
   .lvl-block { margin-right: 0; }
   .lvl-num { font-size: 112px; }
 }
@@ -417,7 +414,7 @@ select option { background: var(--bg); color: var(--text); }
 .seg label { flex-direction: row; gap: 0; cursor: pointer; }
 .seg input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .seg span { display: grid; place-items: center; min-height: 44px; padding: 0 14px; font-size: 14px; color: var(--muted2); transition: background .2s ease, color .2s ease; }
-.seg input:checked + span { background: rgba(127, 232, 255, .16); color: var(--bright); box-shadow: inset 0 -2px 0 var(--acc); }
+.seg input:checked + span { background: rgb(var(--acc-rgb) / .16); color: var(--bright); box-shadow: inset 0 -2px 0 var(--acc); }
 .seg input:focus-visible + span { outline: 2px solid var(--acc); outline-offset: -2px; }
 [data-theme="ink"] .seg { border: none; gap: 14px; }
 [data-theme="ink"] .seg span { padding: 0 2px; }
@@ -431,7 +428,7 @@ select option { background: var(--bg); color: var(--text); }
 .phase { margin: 0; text-align: center; font-size: 14px; color: var(--muted2); min-height: 1.6em; }
 [data-theme="ink"] .phase { text-align: right; }
 .steps { display: flex; gap: 4px; }
-.step { height: 6px; background: rgba(127, 232, 255, .14); }
+.step { height: 6px; background: rgb(var(--acc-rgb) / .14); }
 .step.break { background: rgba(111, 227, 165, .2); }
 .step.done.work, .step.cur.work { background: var(--acc); }
 .step.done.break, .step.cur.break { background: var(--rest); }
@@ -511,7 +508,7 @@ html.need-auth .view:not(#view-auth), html.need-auth .tabs, html.need-auth .tool
 .auth-msg svg { width: 54px; height: 54px; color: var(--acc); stroke-width: 1.4; }
 .auth-msg p { margin: 0; color: var(--muted2); line-height: 1.7; }
 .auth-msg span { color: var(--acc); }
-.sys-badge { align-self: center; display: flex; align-items: center; gap: 12px; padding: 6px 20px; border: 1px solid rgba(127, 232, 255, .55); background: rgba(127, 232, 255, .06); font-size: 14px; color: var(--muted2); }
+.sys-badge { align-self: center; display: flex; align-items: center; gap: 12px; padding: 6px 20px; border: 1px solid rgb(var(--acc-rgb) / .55); background: rgb(var(--acc-rgb) / .06); font-size: 14px; color: var(--muted2); }
 .sys-mark, .toast-mark { position: relative; width: 22px; height: 22px; display: grid; place-items: center; font-family: var(--display); font-weight: 700; font-size: 13px; color: var(--acc); }
 .sys-mark::before, .toast-mark::before { content: ''; position: absolute; inset: 1px; border: 1.5px solid currentColor; transform: rotate(45deg); }
 .shake { animation: shake .35s ease; }
@@ -522,14 +519,14 @@ html.need-auth .view:not(#view-auth), html.need-auth .tabs, html.need-auth .tool
 .auth-tally line.on { stroke: var(--text); }
 
 /* أنمي: نافذة النظام فوق البوابة */
-[data-theme="anime"] #view-auth { background: radial-gradient(ellipse 55% 70% at 50% 50%, rgba(4, 9, 21, .35), rgba(4, 9, 21, .92) 75%), url(../assets/dungeon-gate.webp) center 40% / cover no-repeat; }
+[data-theme="anime"] #view-auth { background: radial-gradient(ellipse 55% 70% at 50% 50%, rgba(4, 9, 21, .35), rgba(4, 9, 21, .92) 75%); }
 [data-theme="anime"] .auth-card { padding: 30px 32px 26px; }
-[data-theme="anime"] .auth-card h1 { text-align: center; text-shadow: 0 0 18px rgba(127, 232, 255, .75), 0 0 2px #fff; }
+[data-theme="anime"] .auth-card h1 { text-align: center; text-shadow: 0 0 18px rgb(var(--acc-rgb) / .75), 0 0 2px #fff; }
 [data-theme="anime"] .auth-sub { text-align: center; }
-[data-theme="anime"] .auth-tabs { border-bottom: 1px solid rgba(127, 232, 255, .25); }
+[data-theme="anime"] .auth-tabs { border-bottom: 1px solid rgb(var(--acc-rgb) / .25); }
 [data-theme="anime"] .auth-tabs button { margin-bottom: -1px; }
 [data-theme="anime"] .auth-msg h1 { text-align: center; }
-[data-theme="anime"] .auth-msg svg { filter: drop-shadow(0 0 10px rgba(127, 232, 255, .8)); }
+[data-theme="anime"] .auth-msg svg { filter: drop-shadow(0 0 10px rgb(var(--acc-rgb) / .8)); }
 html.need-auth[data-theme="anime"] .auth-card { animation: open .6s cubic-bezier(.2, .9, .25, 1) both; }
 
 /* حبر الليل: صفحة هادئة بعمودين */
@@ -566,7 +563,7 @@ html.need-auth[data-theme="anime"] .auth-card { animation: open .6s cubic-bezier
 /* ============ الإضافات: المهمة الأهم، الألقاب، البطاقات، الحلقة، السجل، التقرير ============ */
 /* --- البطل بنفس الترتيب في حبر الليل --- */
 .chips { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.title-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; padding: 3px 12px; border: 1px solid var(--acc2); color: #E2D4FF; background: rgba(196, 168, 255, .14); box-shadow: 0 0 14px -4px rgba(196, 168, 255, .8); }
+.title-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; padding: 3px 12px; border: 1px solid var(--acc2); color: #E2D4FF; background: rgb(var(--acc2-rgb) / .14); box-shadow: 0 0 14px -4px rgb(var(--acc2-rgb) / .8); }
 .title-chip .crown { width: 15px; height: 15px; color: var(--acc2); }
 .hero-ink { padding: 40px 32px 0; }
 .hero-ink .hero-body { padding: 0 0 24px; gap: 32px; }
@@ -592,7 +589,7 @@ html.need-auth[data-theme="anime"] .auth-card { animation: open .6s cubic-bezier
 .sc-go { position: absolute; top: 14px; left: 14px; width: 16px; height: 16px; color: var(--acc); opacity: .45; transition: opacity .2s ease; }
 .sc-hint { position: absolute; bottom: 8px; left: 14px; font-size: 11px; color: var(--acc); opacity: .5; transition: opacity .2s ease; }
 .stat-card:hover .sc-go, .stat-card:hover .sc-hint, .stat-card:focus-visible .sc-go, .stat-card:focus-visible .sc-hint { opacity: 1; }
-[data-theme="anime"] .stat-card:hover { transform: translateY(-2px); box-shadow: 0 0 0 1px rgba(127, 232, 255, .25), 0 0 36px -4px rgba(127, 232, 255, .7), inset 0 0 40px -18px rgba(127, 232, 255, .6); }
+[data-theme="anime"] .stat-card:hover { transform: translateY(-2px); box-shadow: 0 0 0 1px rgb(var(--acc-rgb) / .25), 0 0 36px -4px rgb(var(--acc-rgb) / .7), inset 0 0 40px -18px rgb(var(--acc-rgb) / .6); }
 [data-theme="ink"] .stat-cards { width: min(1456px, calc(100% - 48px)); padding: 12px 0 18px; gap: 12px 0; border-bottom: 1px solid var(--line); }
 [data-theme="ink"] .stat-card { padding: 12px 16px 30px; background: none; border: none; }
 [data-theme="ink"] .stat-card + .stat-card { border-inline-start: 1px solid var(--line); }
@@ -623,9 +620,9 @@ html.need-auth[data-theme="anime"] .auth-card { animation: open .6s cubic-bezier
 /* --- الألقاب في الإنجازات --- */
 .ach-top { align-items: center; }
 .title-btn { flex: none; min-height: 32px; padding: 2px 10px; font-size: 12px; background: transparent; color: var(--acc2); border: 1px solid var(--acc2); transition: background .2s ease, color .2s ease; }
-.title-btn:hover { background: rgba(196, 168, 255, .14); }
-.title-btn.on { background: rgba(196, 168, 255, .24); color: var(--bright); }
-[data-theme="anime"] .ach.is-title .ach-badge { border-color: var(--acc2); box-shadow: 0 0 14px rgba(196, 168, 255, .7); }
+.title-btn:hover { background: rgb(var(--acc2-rgb) / .14); }
+.title-btn.on { background: rgb(var(--acc2-rgb) / .24); color: var(--bright); }
+[data-theme="anime"] .ach.is-title .ach-badge { border-color: var(--acc2); box-shadow: 0 0 14px rgb(var(--acc2-rgb) / .7); }
 [data-theme="anime"] .ach.is-title .ach-badge span { color: #E2D4FF; }
 [data-theme="ink"] .title-btn { border-radius: 999px; color: var(--acc); border-color: var(--acc); }
 [data-theme="ink"] .title-btn:hover { background: rgba(240, 163, 94, .1); }
@@ -637,8 +634,8 @@ html.need-auth[data-theme="anime"] .auth-card { animation: open .6s cubic-bezier
 /* --- حلقة مؤقت التركيز --- */
 .ring-wrap { position: relative; width: min(240px, 100%); aspect-ratio: 1; margin: 0 auto; }
 .ring { display: block; width: 100%; height: 100%; }
-.ring-bg { fill: none; stroke: rgba(127, 232, 255, .12); stroke-width: 6; }
-.ring-fg { fill: none; stroke: var(--acc); stroke-width: 6; stroke-linecap: round; stroke-dasharray: 1000; stroke-dashoffset: 0; transition: stroke-dashoffset .6s linear, stroke .4s ease; filter: drop-shadow(0 0 7px rgba(127, 232, 255, .8)); }
+.ring-bg { fill: none; stroke: rgb(var(--acc-rgb) / .12); stroke-width: 6; }
+.ring-fg { fill: none; stroke: var(--acc); stroke-width: 6; stroke-linecap: round; stroke-dasharray: 1000; stroke-dashoffset: 0; transition: stroke-dashoffset .6s linear, stroke .4s ease; filter: drop-shadow(0 0 7px rgb(var(--acc-rgb) / .8)); }
 #focusPanel.on-break .ring-fg { stroke: var(--rest); filter: drop-shadow(0 0 7px rgba(111, 227, 165, .8)); }
 .ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
 .ring-center .timer { font-size: 58px; text-align: center; }
@@ -671,12 +668,12 @@ html.need-auth[data-theme="anime"] .auth-card { animation: open .6s cubic-bezier
 /* --- خانة الإضافة: اختصار / --- */
 .quick-field { position: relative; flex: 1 1 260px; min-width: 0; display: flex; }
 .quick-field input { flex: 1 1 auto; width: 100%; padding-left: 46px; }
-.slash-key { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-family: var(--display); font-weight: 700; font-size: 13px; line-height: 1.5; color: var(--acc); border: 1px solid rgba(127, 232, 255, .6); background: rgba(127, 232, 255, .08); padding: 0 8px; pointer-events: none; transition: opacity .2s ease; }
+.slash-key { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-family: var(--display); font-weight: 700; font-size: 13px; line-height: 1.5; color: var(--acc); border: 1px solid rgb(var(--acc-rgb) / .6); background: rgb(var(--acc-rgb) / .08); padding: 0 8px; pointer-events: none; transition: opacity .2s ease; }
 .quick-field input:focus + .slash-key { opacity: 0; }
 [data-theme="ink"] .slash-key { left: 4px; border-color: rgba(240, 163, 94, .6); background: none; border-radius: 6px; font-family: var(--body); font-weight: 400; }
 
 /* --- زر تقرير اليوم والنافذة --- */
-.brief-btn { display: inline-flex; align-items: center; gap: 8px; color: var(--acc); border-color: rgba(127, 232, 255, .55); }
+.brief-btn { display: inline-flex; align-items: center; gap: 8px; color: var(--acc); border-color: rgb(var(--acc-rgb) / .55); }
 .brief-btn svg, .speak-btn svg { width: 16px; height: 16px; }
 .speak-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 [data-theme="ink"] .brief-btn { color: var(--acc); }
@@ -685,12 +682,12 @@ html.need-auth[data-theme="anime"] .auth-card { animation: open .6s cubic-bezier
 .brief form { gap: 18px; }
 .brief-head { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
 .brief-head h2 { font-size: 26px; }
-[data-theme="anime"] .brief-head h2 { text-shadow: 0 0 18px rgba(127, 232, 255, .75); }
+[data-theme="anime"] .brief-head h2 { text-shadow: 0 0 18px rgb(var(--acc-rgb) / .75); }
 .dlg .brief-date { font-size: 14px; color: var(--muted); }
 .dlg .brief-lead { font-size: 17px; line-height: 1.9; text-align: center; white-space: normal; }
 .brief-lead b { color: var(--acc); font-weight: 600; }
 .brief-grid { margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.brief-grid > div { padding: 12px 14px; border: 1px solid rgba(127, 232, 255, .22); background: rgba(2, 8, 20, .45); }
+.brief-grid > div { padding: 12px 14px; border: 1px solid rgb(var(--acc-rgb) / .22); background: rgba(2, 8, 20, .45); }
 .brief-grid dt { font-size: 12px; color: var(--muted); }
 .brief-grid dd { margin: 4px 0 0; font-size: 16px; color: var(--text); overflow-wrap: anywhere; }
 .brief-grid .mit { border-color: rgba(255, 154, 60, .5); background: rgba(255, 154, 60, .06); }
@@ -698,15 +695,15 @@ html.need-auth[data-theme="anime"] .auth-card { animation: open .6s cubic-bezier
 .brief-grid .mit dd { color: var(--ember2); }
 .dlg .brief-foot { font-size: 14px; color: var(--muted2); text-align: center; }
 .brief-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.brief-list li { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 1px solid rgba(127, 232, 255, .22); background: rgba(2, 8, 20, .45); }
+.brief-list li { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 1px solid rgb(var(--acc-rgb) / .22); background: rgba(2, 8, 20, .45); }
 .bl-dot { flex: none; width: 11px; height: 11px; border: 1.5px solid var(--acc); transform: rotate(45deg); }
 .bl-title { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
 .bl-time { flex: none; font-size: 14px; color: var(--muted); }
 .brief-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; text-align: center; }
 .bw-day { display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
-.bw-day i { width: 18px; height: 18px; transform: rotate(45deg); border: 1.5px solid rgba(127, 232, 255, .3); }
+.bw-day i { width: 18px; height: 18px; transform: rotate(45deg); border: 1.5px solid rgb(var(--acc-rgb) / .3); }
 .bw-day.done i { background: var(--acc); border-color: var(--acc); box-shadow: 0 0 10px var(--acc); }
-.bw-day.rest i { border-color: var(--acc2); background: rgba(196, 168, 255, .4); }
+.bw-day.rest i { border-color: var(--acc2); background: rgb(var(--acc2-rgb) / .4); }
 .bw-day.off i { opacity: .3; }
 .brief .row-btns .main-btn { flex: 1 1 200px; }
 [data-theme="ink"] .dlg.brief { border-radius: 18px; padding: 32px 34px 24px; }
@@ -758,9 +755,6 @@ html.lang-switching body { opacity: .4; transition: opacity .12s ease; }
 [dir="ltr"] .menu { left: auto; right: 0; }
 [dir="ltr"] .menu button { text-align: left; }
 [dir="ltr"] .icon-btn[data-tip]::before { left: auto; right: 0; }
-
-[dir="ltr"] .hero-anime { background: linear-gradient(180deg, rgba(4, 9, 21, 0) 50%, rgba(4, 9, 21, .82) 86%, #040915 100%), linear-gradient(90deg, rgba(4, 9, 21, .94) 0%, rgba(4, 9, 21, .55) 40%, rgba(4, 9, 21, .18) 72%, rgba(4, 9, 21, .62) 100%), url(../assets/dungeon-gate.webp) center 40% / cover no-repeat; }
-[dir="ltr"] .hero-anime .avatar { right: auto; left: -10px; }
 [dir="ltr"] .lvl-block { margin-right: 0; margin-left: 370px; }
 [dir="ltr"] .hero-ink .lvl-block { margin-left: 0; }
 [dir="ltr"] .xpbar span, [dir="ltr"] .bar span { inset: 0 auto 0 0; }
@@ -810,7 +804,7 @@ html.lang-switching body { opacity: .4; transition: opacity .12s ease; }
 /* --- زر داخل الإشعار (تراجع) --- */
 .toast.has-action { pointer-events: auto; }
 .toast-btn { min-height: 34px; padding: 4px 14px; font-size: 14px; font-weight: 600; background: transparent; color: var(--acc); border: 1px solid var(--acc); }
-.toast-btn:hover { background: rgba(127, 232, 255, .16); }
+.toast-btn:hover { background: rgb(var(--acc-rgb) / .16); }
 .toast.gold .toast-btn { color: var(--ember2); border-color: var(--ember); }
 [data-theme="ink"] .toast-btn { background: #10222B; color: #EDE6D6; border: none; border-radius: 999px; }
 [data-theme="ink"] .toast-btn:hover { background: #1d3742; }
@@ -829,7 +823,7 @@ textarea { min-height: 96px; padding: 8px 12px; font: inherit; font-size: 15px; 
 [data-theme="ink"] .subs-head .bar span { background: var(--acc); }
 .subs-list { list-style: none; margin: 0; padding: 0; }
 .sub { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 40px; padding: 4px 8px; background: none; border: none; color: var(--text); font-size: 14px; text-align: start; }
-.sub:hover { background: rgba(127, 232, 255, .06); }
+.sub:hover { background: rgb(var(--acc-rgb) / .06); }
 .sub-box { flex: none; width: 10px; height: 10px; border: 1.5px solid var(--acc2); transform: rotate(45deg); transition: background .2s ease; }
 .sub.done .sub-box { background: var(--acc2); }
 .sub.done .sub-title { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--acc2); }
@@ -849,7 +843,7 @@ button.cell:hover i { transform: rotate(45deg) scale(1.3); }
 [data-theme="anime"] .cell i { transition: transform .15s ease; }
 [data-theme="anime"] .cell.sel i { outline: 2px solid var(--ember); outline-offset: 3px; }
 [data-theme="ink"] .cell.sel i { box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px var(--text); }
-.heat-day { margin: 2px 0 0; min-height: 44px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 8px 12px; font-size: 14px; color: var(--muted2); border: 1px solid rgba(127, 232, 255, .2); background: rgba(127, 232, 255, .04); }
+.heat-day { margin: 2px 0 0; min-height: 44px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 8px 12px; font-size: 14px; color: var(--muted2); border: 1px solid rgb(var(--acc-rgb) / .2); background: rgb(var(--acc-rgb) / .04); }
 .hd-hint { color: var(--muted); font-size: 13px; }
 .hd-date { color: var(--bright); font-weight: 600; }
 .hd-st { padding: 0 8px; border: 1px solid currentColor; font-size: 12px; }
@@ -884,7 +878,7 @@ dialog.immersive::backdrop { background: var(--bg); }
 .immersive .main-btn { min-width: 160px; }
 dialog.immersive.on-break .ring-fg { stroke: var(--rest); }
 dialog.immersive.on-break .timer, dialog.immersive.on-break .phase { color: var(--rest); }
-[data-theme="anime"] .immersive .timer { text-shadow: 0 0 22px rgba(127, 232, 255, .75), 0 0 2px #fff; }
+[data-theme="anime"] .immersive .timer { text-shadow: 0 0 22px rgb(var(--acc-rgb) / .75), 0 0 2px #fff; }
 [data-theme="ink"] .im-kicker { font-family: var(--display); font-size: 20px; letter-spacing: 0; }
 [data-theme="ink"] #imTask { font-size: 40px; }
 html.immersed #fx { display: none; }
@@ -898,8 +892,8 @@ html.immersed #fx { display: none; }
 html:lang(en)[data-theme="ink"] { --ruq: 'Amiri', serif; }
 
 /* ---------- الشريط العلوي ---------- */
-[data-theme="anime"] .brand { display: inline-flex; align-items: center; gap: 10px; text-shadow: 0 0 18px rgba(127, 232, 255, .75); }
-[data-theme="anime"] .brand::before { content: ''; width: 16px; height: 16px; transform: rotate(45deg); border: 1.5px solid var(--acc); background: radial-gradient(circle, rgba(127, 232, 255, .55) 0 30%, transparent 32%); box-shadow: 0 0 10px rgba(127, 232, 255, .6); }
+[data-theme="anime"] .brand { display: inline-flex; align-items: center; gap: 10px; text-shadow: 0 0 18px rgb(var(--acc-rgb) / .75); }
+[data-theme="anime"] .brand::before { content: ''; width: 16px; height: 16px; transform: rotate(45deg); border: 1.5px solid var(--acc); background: radial-gradient(circle, rgb(var(--acc-rgb) / .55) 0 30%, transparent 32%); box-shadow: 0 0 10px rgb(var(--acc-rgb) / .6); }
 [data-theme="ink"] .brand { font-family: var(--ruq); font-size: 28px; line-height: 1.2; display: inline-flex; align-items: center; gap: 10px; }
 [data-theme="ink"] .brand::before { content: ''; width: 22px; height: 22px; background: var(--acc); -webkit-mask: radial-gradient(circle at 70% 35%, transparent 52%, #000 54%); mask: radial-gradient(circle at 70% 35%, transparent 52%, #000 54%); border-radius: 50%; }
 .sync-chip { align-self: center; display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; font-size: 13px; color: var(--muted2); white-space: nowrap; border: 1px solid rgba(111, 227, 165, .35); background: rgba(111, 227, 165, .06); }
@@ -913,63 +907,39 @@ html:lang(en)[data-theme="ink"] { --ruq: 'Amiri', serif; }
 /* ---------- الأرقام ---------- */
 [data-theme="anime"] :is(.lvl-num, .streak-num, .sc-value, .timer, .num b, .ctr, .heat-stats dd, .ab-val, .rt-val, .lv-nums, .wb-v, .week-stats b, .xp-meta [dir="ltr"]) { font-family: var(--hud); font-variant-numeric: tabular-nums; }
 [data-theme="anime"] .lvl-num { font-weight: 700; }
-
-/* ---------- أنمي: البطل ---------- */
-.hero-anime .motes { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 1; }
-.hero-anime .motes i { position: absolute; bottom: -8px; width: 3px; height: 3px; background: #BFF5FF; box-shadow: 0 0 8px #7FE8FF; opacity: 0; animation: moteRise 10s linear infinite; }
-.hero-anime .motes i:nth-child(3n) { width: 2px; height: 2px; }
-.hero-anime .motes i:nth-child(4n) { width: 4px; height: 4px; }
 @keyframes moteRise { 0% { transform: translateY(0); opacity: 0; } 12% { opacity: .9; } 80% { opacity: .6; } 100% { transform: translateY(-520px); opacity: 0; } }
 [data-theme="anime"] .ember { background: #BFF5FF; box-shadow: 0 0 8px #7FE8FF; border-radius: 0; }
-.hero-anime .hero-body { z-index: 2; }
-.hero-anime .lvl-block { gap: 14px; max-width: 600px; }
-.xpseg { display: flex; gap: 3px; }
-.xpseg i { flex: 1 1 0; height: 9px; background: rgba(127, 232, 255, .14); transform: skewX(-20deg); transition: background .4s ease, box-shadow .4s ease; }
-.xpseg i.on { background: var(--acc); box-shadow: 0 0 8px rgba(127, 232, 255, .8); }
-.rank-trial { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; padding: 10px 14px; border: 1px solid rgba(196, 168, 255, .35); background: rgba(10, 14, 40, .55); }
+.rank-trial { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; padding: 10px 14px; border: 1px solid rgb(var(--acc2-rgb) / .35); background: rgba(10, 14, 40, .55); }
 .rt-title { font-family: var(--hud, inherit); font-weight: 700; font-size: 13px; letter-spacing: .1em; color: var(--acc2); white-space: nowrap; }
 .rt-rows { flex: 1 1 260px; display: flex; flex-wrap: wrap; gap: 10px 18px; }
 .rt-row { flex: 1 1 120px; display: flex; flex-direction: column; gap: 5px; font-size: 12px; color: var(--muted2); }
 .rt-top { display: flex; justify-content: space-between; gap: 8px; }
 .rt-val { color: var(--bright); }
 .rt-row.met .rt-val { color: var(--rest); }
-.rt-bar { position: relative; height: 3px; background: rgba(196, 168, 255, .18); }
+.rt-bar { position: relative; height: 3px; background: rgb(var(--acc2-rgb) / .18); }
 .rt-bar span { position: absolute; inset-block: 0; inset-inline-start: 0; background: var(--acc2); transition: width .6s ease; }
 .rt-row.met .rt-bar span { background: var(--rest); }
 .rank-max { margin: 0; font-size: 13px; color: var(--acc2); }
-.status-win { flex: 0 1 380px; min-width: 280px; margin-inline-start: auto; padding: 16px 22px 20px; display: flex; flex-direction: column; gap: 14px; }
-.win-tab { margin: 0; display: flex; align-items: center; justify-content: center; gap: 12px; font-family: var(--hud); font-size: 14px; font-weight: 700; letter-spacing: .22em; color: var(--acc); }
-.win-tab::before, .win-tab::after { content: ''; flex: 1 1 30px; max-width: 120px; height: 1px; background: linear-gradient(90deg, rgba(127, 232, 255, 0), rgba(127, 232, 255, .65)); }
-.win-tab::after { background: linear-gradient(90deg, rgba(127, 232, 255, .65), rgba(127, 232, 255, 0)); }
-.st-streak { display: flex; align-items: center; gap: 14px; padding-bottom: 14px; border-bottom: 1px solid rgba(127, 232, 255, .2); }
-.st-streak .streak-num { font-size: 58px; }
 .st-side { display: flex; flex-direction: column; gap: 6px; }
-.st-abil { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 20px; }
-.st-abil .ab:last-child:nth-child(odd) { grid-column: 1 / -1; }
-.ab-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-.ab-name { font-size: 13px; color: var(--c); }
-.ab-val { font-size: 20px; font-weight: 700; color: var(--bright); }
-.ab-bar { position: relative; height: 4px; margin-top: 5px; background: rgba(127, 232, 255, .12); }
-.ab-bar span { position: absolute; inset-block: 0; inset-inline-start: 0; background: var(--c); box-shadow: 0 0 10px var(--c); transition: width .6s ease; }
 
 /* ---------- أنمي: النوافذ ---------- */
-[data-theme="anime"] .panel::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(127, 232, 255, .03) 0 1px, transparent 1px 4px); }
+[data-theme="anime"] .panel::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgb(var(--acc-rgb) / .03) 0 1px, transparent 1px 4px); }
 [data-theme="anime"] #focusTitle, [data-theme="anime"] #achMiniTitle { display: flex; align-items: center; justify-content: center; gap: 12px; }
-[data-theme="anime"] #focusTitle::before, [data-theme="anime"] #focusTitle::after { content: ''; flex: 1 1 20px; max-width: 70px; height: 1px; background: linear-gradient(90deg, rgba(127, 232, 255, 0), rgba(127, 232, 255, .65)); }
-[data-theme="anime"] #focusTitle::after { background: linear-gradient(90deg, rgba(127, 232, 255, .65), rgba(127, 232, 255, 0)); }
+[data-theme="anime"] #focusTitle::before, [data-theme="anime"] #focusTitle::after { content: ''; flex: 1 1 20px; max-width: 70px; height: 1px; background: linear-gradient(90deg, rgb(var(--acc-rgb) / 0), rgb(var(--acc-rgb) / .65)); }
+[data-theme="anime"] #focusTitle::after { background: linear-gradient(90deg, rgb(var(--acc-rgb) / .65), rgb(var(--acc-rgb) / 0)); }
 /* البطاقات الأربع = شريط واحد */
 [data-theme="anime"] .stat-cards.panel { width: calc(100% - 40px); max-width: 1480px; margin: 4px auto 0; padding: 0; gap: 0; }
 [data-theme="anime"] .stat-cards.panel::after { z-index: 0; }
 [data-theme="anime"] .stat-cards > .stat-card { background: none; border: none; box-shadow: none; padding: 16px 22px 30px; }
 [data-theme="anime"] .stat-cards > .stat-card::after { display: none; }
-[data-theme="anime"] .stat-cards > .stat-card + .stat-card { border-inline-start: 1px solid rgba(127, 232, 255, .16); }
-[data-theme="anime"] .stat-cards > .stat-card:hover { transform: none; box-shadow: none; background: rgba(127, 232, 255, .07); }
+[data-theme="anime"] .stat-cards > .stat-card + .stat-card { border-inline-start: 1px solid rgb(var(--acc-rgb) / .16); }
+[data-theme="anime"] .stat-cards > .stat-card:hover { transform: none; box-shadow: none; background: rgb(var(--acc-rgb) / .07); }
 [data-theme="anime"] .sc-value { font-size: 30px; }
 
 /* ---------- المهام: وميض و+XP لما تنجزها ---------- */
 .task-li { position: relative; }
 .task-li.swept { overflow: hidden; }
-[data-theme="anime"] .task-li.swept::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, rgba(127, 232, 255, 0), rgba(127, 232, 255, .3), rgba(127, 232, 255, 0)); animation: sweepR .8s ease-out both; }
+[data-theme="anime"] .task-li.swept::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, rgb(var(--acc-rgb) / 0), rgb(var(--acc-rgb) / .3), rgb(var(--acc-rgb) / 0)); animation: sweepR .8s ease-out both; }
 [dir="ltr"][data-theme="anime"] .task-li.swept::before { animation-name: sweepL; }
 @keyframes sweepR { from { transform: translateX(100%); } to { transform: translateX(-100%); } }
 @keyframes sweepL { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
@@ -982,8 +952,8 @@ html:lang(en)[data-theme="ink"] { --ruq: 'Amiri', serif; }
 
 /* شريط اكتمال اليوم */
 .bonus-line.complete { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 16px; color: var(--bright); }
-[data-theme="anime"] .bonus-line.complete { padding: 14px 18px; border: 1px solid var(--acc); background: rgba(127, 232, 255, .1); box-shadow: 0 0 30px -6px rgba(127, 232, 255, .7); animation: open .55s cubic-bezier(.2, .9, .25, 1) both; }
-[data-theme="anime"] .bl-tag { font-family: var(--hud); font-weight: 700; font-size: 14px; letter-spacing: .14em; color: var(--acc); text-shadow: 0 0 12px rgba(127, 232, 255, .8); }
+[data-theme="anime"] .bonus-line.complete { padding: 14px 18px; border: 1px solid var(--acc); background: rgb(var(--acc-rgb) / .1); box-shadow: 0 0 30px -6px rgb(var(--acc-rgb) / .7); animation: open .55s cubic-bezier(.2, .9, .25, 1) both; }
+[data-theme="anime"] .bl-tag { font-family: var(--hud); font-weight: 700; font-size: 14px; letter-spacing: .14em; color: var(--acc); text-shadow: 0 0 12px rgb(var(--acc-rgb) / .8); }
 [data-theme="ink"] .bonus-line.complete { padding: 14px 0; border-top: 1px solid var(--acc); border-bottom: 1px solid var(--acc); }
 [data-theme="ink"] .bl-tag { font-family: var(--ruq); font-size: 30px; line-height: 1.3; color: var(--acc); }
 [data-theme="ink"] .bl-txt { font-family: Amiri, serif; font-size: 19px; }
@@ -1005,9 +975,9 @@ html:lang(en)[data-theme="ink"] { --ruq: 'Amiri', serif; }
 /* الإضافة السريعة: شرائح */
 .quick-hint.chips { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .qlabel { color: var(--muted); }
-[data-theme="anime"] .qchip { display: inline-flex; align-items: center; padding: 3px 10px; border: 1px solid rgba(127, 232, 255, .35); background: rgba(127, 232, 255, .07); color: var(--text); font-size: 13px; }
+[data-theme="anime"] .qchip { display: inline-flex; align-items: center; padding: 3px 10px; border: 1px solid rgb(var(--acc-rgb) / .35); background: rgb(var(--acc-rgb) / .07); color: var(--text); font-size: 13px; }
 [data-theme="anime"] .qchip.q-daily { color: var(--acc); }
-[data-theme="anime"] .qchip.q-gate { color: var(--acc2); border-color: rgba(196, 168, 255, .5); }
+[data-theme="anime"] .qchip.q-gate { color: var(--acc2); border-color: rgb(var(--acc2-rgb) / .5); }
 [data-theme="anime"] .qchip.q-stat { color: var(--c); border-color: color-mix(in srgb, var(--c) 45%, transparent); }
 [data-theme="anime"] .qchip.q-xp { color: var(--acc); font-family: var(--hud); }
 [data-theme="ink"] .quick-hint.chips { gap: 4px 10px; font-family: Amiri, serif; font-size: 18px; color: var(--text); }
@@ -1022,8 +992,8 @@ html:lang(en)[data-theme="ink"] { --ruq: 'Amiri', serif; }
 .heat-legend span { display: inline-flex; align-items: center; gap: 7px; }
 .heat-legend span::before { content: ''; width: 9px; height: 9px; transform: rotate(45deg); }
 .lg-c3::before { background: var(--acc); box-shadow: 0 0 6px var(--acc); }
-.lg-c2::before { background: rgba(127, 232, 255, .62); }
-.lg-rest::before { background: rgba(196, 168, 255, .5); }
+.lg-c2::before { background: rgb(var(--acc-rgb) / .62); }
+.lg-rest::before { background: rgb(var(--acc2-rgb) / .5); }
 [data-theme="anime"] .lg-ink, [data-theme="ink"] .lg-anime { display: none; }
 [data-theme="ink"] .cell { position: relative; }
 [data-theme="ink"] .cell i { position: relative; z-index: 1; }
@@ -1110,23 +1080,23 @@ dialog.lv-dlg::backdrop { background: rgba(1, 4, 11, .88); }
 [data-theme="ink"] dialog.lv-dlg::backdrop { background: rgba(9, 20, 26, .95); }
 .lv-fx { position: absolute; inset: 0; pointer-events: none; display: grid; place-items: center; }
 .lv-fx > span { grid-area: 1 / 1; }
-.lv-rays { width: 1600px; height: 1600px; border-radius: 50%; background: repeating-conic-gradient(from 0deg, rgba(127, 232, 255, .15) 0deg 5deg, rgba(127, 232, 255, 0) 5deg 15deg); -webkit-mask-image: radial-gradient(circle, #000 0%, rgba(0, 0, 0, .6) 30%, transparent 62%); mask-image: radial-gradient(circle, #000 0%, rgba(0, 0, 0, .6) 30%, transparent 62%); animation: lvSpin 40s linear infinite; }
+.lv-rays { width: 1600px; height: 1600px; border-radius: 50%; background: repeating-conic-gradient(from 0deg, rgb(var(--acc-rgb) / .15) 0deg 5deg, rgb(var(--acc-rgb) / 0) 5deg 15deg); -webkit-mask-image: radial-gradient(circle, #000 0%, rgba(0, 0, 0, .6) 30%, transparent 62%); mask-image: radial-gradient(circle, #000 0%, rgba(0, 0, 0, .6) 30%, transparent 62%); animation: lvSpin 40s linear infinite; }
 .lv-ring { width: 260px; height: 260px; border-radius: 50%; border: 1px solid rgba(240, 163, 94, .55); opacity: 0; animation: lvBurst 2.4s ease-out infinite; }
 .lv-ring.r2 { animation-delay: .8s; } .lv-ring.r3 { animation-delay: 1.6s; }
 [data-theme="anime"] .lv-ring, [data-theme="ink"] .lv-rays { display: none; }
 @keyframes lvSpin { to { transform: rotate(360deg); } }
 @keyframes lvBurst { 0% { transform: scale(.35); opacity: .9; } 100% { transform: scale(3.2); opacity: 0; } }
 .lv-box { position: relative; width: min(540px, 100%); display: flex; flex-direction: column; align-items: center; gap: 14px; margin: 0; text-align: center; }
-[data-theme="anime"] .lv-box { padding: 30px 32px 28px; border: 1px solid var(--line); background: linear-gradient(180deg, rgba(12, 34, 72, .94), rgba(5, 14, 34, .97)); box-shadow: 0 0 0 1px rgba(127, 232, 255, .06), 0 0 40px -8px rgba(127, 232, 255, .55), inset 0 0 44px -20px rgba(127, 232, 255, .55); }
+[data-theme="anime"] .lv-box { padding: 30px 32px 28px; border: 1px solid var(--line); background: linear-gradient(180deg, rgba(12, 34, 72, .94), rgba(5, 14, 34, .97)); box-shadow: 0 0 0 1px rgb(var(--acc-rgb) / .06), 0 0 40px -8px rgb(var(--acc-rgb) / .55), inset 0 0 44px -20px rgb(var(--acc-rgb) / .55); }
 .lv-kicker { margin: 0; font-family: var(--hud, inherit); font-size: 13px; font-weight: 700; letter-spacing: .22em; color: var(--acc); }
 [data-theme="ink"] .lv-kicker { display: none; }
 #lvTitle { margin: 0; font-family: var(--display); font-size: 34px; color: var(--bright); }
-[data-theme="anime"] #lvTitle { text-shadow: 0 0 18px rgba(127, 232, 255, .75), 0 0 2px #fff; }
+[data-theme="anime"] #lvTitle { text-shadow: 0 0 18px rgb(var(--acc-rgb) / .75), 0 0 2px #fff; }
 [data-theme="ink"] #lvTitle { font-size: 38px; color: var(--acc); }
 .lv-nums { display: flex; align-items: center; gap: 28px; }
 .lv-from { font-size: 70px; font-weight: 700; color: var(--muted); }
 .lv-to { font-size: 128px; font-weight: 700; line-height: 1; color: #fff; }
-[data-theme="anime"] .lv-to { text-shadow: 0 0 22px rgba(127, 232, 255, .8), 0 0 2px #fff; }
+[data-theme="anime"] .lv-to { text-shadow: 0 0 22px rgb(var(--acc-rgb) / .8), 0 0 2px #fff; }
 .lv-arrow { width: 40px; height: 24px; color: var(--acc); stroke-width: 2; }
 [data-theme="ink"] .lv-nums { font-family: Amiri, serif; gap: 26px; }
 [data-theme="ink"] .lv-from { font-weight: 400; font-size: 60px; text-decoration: line-through; text-decoration-color: var(--acc); text-decoration-thickness: 2px; }
@@ -1163,7 +1133,7 @@ dialog.lv-dlg::backdrop { background: rgba(1, 4, 11, .88); }
 .week-cap { font-size: 12px; color: var(--muted); margin-top: 6px; }
 .range { display: flex; border: 1px solid var(--line); }
 .range button { min-height: 40px; padding: 6px 14px; background: none; border: none; color: var(--muted); font-size: 14px; }
-.range button[aria-pressed="true"] { background: rgba(127, 232, 255, .16); color: var(--bright); }
+.range button[aria-pressed="true"] { background: rgb(var(--acc-rgb) / .16); color: var(--bright); }
 [data-theme="ink"] .range { border: none; gap: 14px; }
 [data-theme="ink"] .range button { padding: 6px 2px; }
 [data-theme="ink"] .range button[aria-pressed="true"] { background: none; color: var(--text); text-decoration: underline 2px var(--acc); text-underline-offset: 8px; }
@@ -1190,8 +1160,8 @@ dialog.lv-dlg::backdrop { background: rgba(1, 4, 11, .88); }
 .week-bars { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; align-items: end; height: 140px; }
 .wb { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 6px; height: 100%; }
 .wb-v { font-size: 11px; color: var(--muted2); }
-.wb-bar { position: relative; width: 100%; max-width: 30px; background: rgba(127, 232, 255, .45); }
-.wb.top .wb-bar { background: var(--acc); box-shadow: 0 0 12px rgba(127, 232, 255, .8); }
+.wb-bar { position: relative; width: 100%; max-width: 30px; background: rgb(var(--acc-rgb) / .45); }
+.wb.top .wb-bar { background: var(--acc); box-shadow: 0 0 12px rgb(var(--acc-rgb) / .8); }
 .wb-d { font-size: 11px; color: var(--muted); }
 [data-theme="ink"] .wb-bar { width: 1.5px; background: rgba(237, 230, 214, .6); }
 [data-theme="ink"] .wb-bar::before { content: ''; position: absolute; top: -4px; left: 50%; width: 9px; height: 9px; margin-left: -4.5px; border-radius: 50%; background: rgba(237, 230, 214, .8); }
@@ -1204,7 +1174,7 @@ dialog.lv-dlg::backdrop { background: rgba(1, 4, 11, .88); }
 [data-theme="anime"] .ah-ink, [data-theme="ink"] .ah-anime { display: none; }
 .ah-anime, .ah-ink { display: flex; flex-direction: column; gap: 16px; }
 .ah-kicker { margin: 0; font-family: var(--hud); font-size: 13px; font-weight: 700; letter-spacing: .3em; color: var(--acc); }
-.ah-title { margin: 0; font-family: var(--display); font-weight: 700; font-size: 66px; line-height: 1.05; color: #fff; text-shadow: 0 0 22px rgba(127, 232, 255, .75), 0 0 2px #fff; }
+.ah-title { margin: 0; font-family: var(--display); font-weight: 700; font-size: 66px; line-height: 1.05; color: #fff; text-shadow: 0 0 22px rgb(var(--acc-rgb) / .75), 0 0 2px #fff; }
 .ah-lead { margin: 0; font-size: 18px; line-height: 1.8; color: var(--text); text-shadow: 0 0 6px #000; }
 .ah-list { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; font-size: 15px; color: var(--muted2); }
 .ah-list li { display: flex; align-items: center; gap: 12px; }
@@ -1224,36 +1194,30 @@ dialog.lv-dlg::backdrop { background: rgba(1, 4, 11, .88); }
   .sync-chip { display: none; }
   [data-theme="anime"] .stat-cards.panel { width: calc(100% - 32px); }
   [data-theme="anime"] .stat-cards > .stat-card + .stat-card { border-inline-start: none; }
-  [data-theme="anime"] .stat-cards > .stat-card:nth-child(n+3) { border-top: 1px solid rgba(127, 232, 255, .16); }
-  [data-theme="anime"] .stat-cards > .stat-card:nth-child(even) { border-inline-start: 1px solid rgba(127, 232, 255, .16); }
-  .status-win { min-width: 0; flex-basis: 100%; }
+  [data-theme="anime"] .stat-cards > .stat-card:nth-child(n+3) { border-top: 1px solid rgb(var(--acc-rgb) / .16); }
+  [data-theme="anime"] .stat-cards > .stat-card:nth-child(even) { border-inline-start: 1px solid rgb(var(--acc-rgb) / .16); }
   .rank-trial { padding: 10px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .hero-anime .motes { display: none; }
 }
 
 /* =====================================================================
    17. الأنمي «النظام الحي»: باقي التصميم من لوحة Design
    ===================================================================== */
 /* خلفية الصفحة: شبكة خطوط خفيفة */
-[data-theme="anime"] body { background-color: var(--bg); background-image: linear-gradient(rgba(127, 232, 255, .035) 1px, transparent 1px), linear-gradient(90deg, rgba(127, 232, 255, .035) 1px, transparent 1px); background-size: 56px 56px; }
+[data-theme="anime"] body { background-color: var(--bg); background-image: linear-gradient(rgb(var(--acc-rgb) / .035) 1px, transparent 1px), linear-gradient(90deg, rgb(var(--acc-rgb) / .035) 1px, transparent 1px); background-size: 56px 56px; }
 
 /* الشريط العلوي شفاف، وصورة البوابة تكمل خلفه */
-[data-theme="anime"] .topbar { background: rgba(3, 7, 18, .5); border-bottom: 1px solid rgba(127, 232, 255, .18); }
-[data-theme="anime"] .hero-anime { margin-top: calc(-1 * var(--topbar-h, 0px)); padding-top: var(--topbar-h, 0px); min-height: calc(500px + var(--topbar-h, 0px));
-  background: linear-gradient(180deg, rgba(4, 9, 21, .6) 0%, rgba(4, 9, 21, 0) 20%, rgba(4, 9, 21, 0) 48%, rgba(4, 9, 21, .88) 86%, #040915 100%), linear-gradient(270deg, rgba(4, 9, 21, .92) 0%, rgba(4, 9, 21, .5) 34%, rgba(4, 9, 21, .08) 64%, rgba(4, 9, 21, .72) 100%), url(../assets/dungeon-gate.webp) center 40% / cover no-repeat; }
-[dir="ltr"][data-theme="anime"] .hero-anime { background: linear-gradient(180deg, rgba(4, 9, 21, .6) 0%, rgba(4, 9, 21, 0) 20%, rgba(4, 9, 21, 0) 48%, rgba(4, 9, 21, .88) 86%, #040915 100%), linear-gradient(90deg, rgba(4, 9, 21, .92) 0%, rgba(4, 9, 21, .5) 34%, rgba(4, 9, 21, .08) 64%, rgba(4, 9, 21, .72) 100%), url(../assets/dungeon-gate.webp) center 40% / cover no-repeat; }
-[data-theme="anime"] .hero-anime .avatar { top: var(--topbar-h, 0px); }
+[data-theme="anime"] .topbar { background: rgba(3, 7, 18, .5); border-bottom: 1px solid rgb(var(--acc-rgb) / .18); }
 
 
 /* بوابة التركيز: نقاط حول الحلقة، حلقة بنفسجية تدور، وقلب ينبض */
 .ring-core, .ring-dots, .ring-spin { display: none; }
-[data-theme="anime"] .ring-core { display: block; fill: rgba(127, 232, 255, .07); transform-origin: 120px 120px; animation: corePulse 3.2s ease-in-out infinite; }
+[data-theme="anime"] .ring-core { display: block; fill: rgb(var(--acc-rgb) / .07); transform-origin: 120px 120px; animation: corePulse 3.2s ease-in-out infinite; }
 [data-theme="anime"] #focusPanel.on-break .ring-core { fill: rgba(111, 227, 165, .07); }
-[data-theme="anime"] .ring-dots { display: block; fill: none; stroke: rgba(127, 232, 255, .35); stroke-width: 5; stroke-dasharray: 1.4 4.67; }
+[data-theme="anime"] .ring-dots { display: block; fill: none; stroke: rgb(var(--acc-rgb) / .35); stroke-width: 5; stroke-dasharray: 1.4 4.67; }
 [data-theme="anime"] .ring-spin { display: block; transform-origin: 120px 120px; animation: ringSpin 38s linear infinite; }
-[data-theme="anime"] .ring-spin circle { fill: none; stroke: rgba(196, 168, 255, .45); stroke-width: 1.2; stroke-dasharray: 36 10 4 10; }
+[data-theme="anime"] .ring-spin circle { fill: none; stroke: rgb(var(--acc2-rgb) / .45); stroke-width: 1.2; stroke-dasharray: 36 10 4 10; }
 @keyframes corePulse { 0%, 100% { opacity: .55; transform: scale(.96); } 50% { opacity: 1; transform: scale(1.03); } }
 @keyframes ringSpin { to { transform: rotate(360deg); } }
 [data-theme="anime"] #timerSteps { margin-top: 4px; }
@@ -1262,16 +1226,16 @@ dialog.lv-dlg::backdrop { background: rgba(1, 4, 11, .88); }
 .dur-chips { display: none; }
 [data-theme="anime"] .dur-sel { display: none; }
 [data-theme="anime"] .dur-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.dur-chip { flex: 1 1 auto; min-height: 44px; padding: 6px 10px; font-size: 14px; background: transparent; color: var(--muted); border: 1px solid rgba(127, 232, 255, .3); cursor: pointer; transition: background .2s ease, color .2s ease, box-shadow .2s ease; }
-.dur-chip:hover:not(:disabled) { background: rgba(127, 232, 255, .1); color: var(--bright); }
-.dur-chip[aria-pressed="true"] { background: rgba(127, 232, 255, .16); color: var(--bright); border-color: var(--acc); box-shadow: 0 0 14px -4px rgba(127, 232, 255, .7); }
+.dur-chip { flex: 1 1 auto; min-height: 44px; padding: 6px 10px; font-size: 14px; background: transparent; color: var(--muted); border: 1px solid rgb(var(--acc-rgb) / .3); cursor: pointer; transition: background .2s ease, color .2s ease, box-shadow .2s ease; }
+.dur-chip:hover:not(:disabled) { background: rgb(var(--acc-rgb) / .1); color: var(--bright); }
+.dur-chip[aria-pressed="true"] { background: rgb(var(--acc-rgb) / .16); color: var(--bright); border-color: var(--acc); box-shadow: 0 0 14px -4px rgb(var(--acc-rgb) / .7); }
 .dur-chip:disabled { cursor: not-allowed; opacity: .55; }
 
 /* عنوان «مهام اليوم»: خطوط جانبية بدون مربع، وتحته التاريخ وكم أنجزت */
 [data-theme="anime"] #tasksPanel .panel-head { gap: 4px; }
 [data-theme="anime"] #tasksTitle { width: 100%; justify-content: center; padding: 0; border: none; background: none; font-size: 26px; }
-[data-theme="anime"] #tasksTitle::before, [data-theme="anime"] #tasksTitle::after { content: ''; flex: 1 1 30px; max-width: 150px; width: auto; height: 1px; border: none; transform: none; background: linear-gradient(90deg, rgba(127, 232, 255, 0), rgba(127, 232, 255, .65)); }
-[data-theme="anime"] #tasksTitle::after { background: linear-gradient(90deg, rgba(127, 232, 255, .65), rgba(127, 232, 255, 0)); }
+[data-theme="anime"] #tasksTitle::before, [data-theme="anime"] #tasksTitle::after { content: ''; flex: 1 1 30px; max-width: 150px; width: auto; height: 1px; border: none; transform: none; background: linear-gradient(90deg, rgb(var(--acc-rgb) / 0), rgb(var(--acc-rgb) / .65)); }
+[data-theme="anime"] #tasksTitle::after { background: linear-gradient(90deg, rgb(var(--acc-rgb) / .65), rgb(var(--acc-rgb) / 0)); }
 [data-theme="anime"] #taskCount { font-size: 14px; color: var(--muted); }
 [data-theme="anime"] #taskCount b { font-family: var(--hud); font-weight: 400; color: var(--bright); }
 [data-theme="anime"] #tasksPanel .head-actions { margin-top: 10px; justify-content: center; }
@@ -1280,15 +1244,15 @@ dialog.lv-dlg::backdrop { background: rgba(1, 4, 11, .88); }
 .grp-row { display: flex; align-items: center; gap: 10px; margin: 14px 0 2px; }
 .grp-row .grp { flex: none; margin: 0; }
 .grp-hint { flex: 1 1 auto; display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--muted); white-space: nowrap; }
-.grp-hint::before { content: ''; flex: 1 1 auto; height: 1px; background: rgba(127, 232, 255, .16); }
+.grp-hint::before { content: ''; flex: 1 1 auto; height: 1px; background: rgb(var(--acc-rgb) / .16); }
 .xpv { flex: none; font-family: var(--hud, inherit); font-size: 12px; color: var(--muted); white-space: nowrap; }
 
 /* المكافأة: أشرطة تمتلئ مع كل مهمة يومية */
 .bonus-line .pips { display: none; }
 [data-theme="anime"] .bonus-line:not(.complete) { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
 [data-theme="anime"] .bonus-line .pips { display: flex; gap: 4px; margin-inline-start: auto; }
-.pips i { width: 26px; height: 6px; transform: skewX(-20deg); background: rgba(127, 232, 255, .14); transition: background .4s ease, box-shadow .4s ease; }
-.pips i.on { background: var(--acc); box-shadow: 0 0 8px rgba(127, 232, 255, .8); }
+.pips i { width: 26px; height: 6px; transform: skewX(-20deg); background: rgb(var(--acc-rgb) / .14); transition: background .4s ease, box-shadow .4s ease; }
+.pips i.on { background: var(--acc); box-shadow: 0 0 8px rgb(var(--acc-rgb) / .8); }
 
 /* السجل: يوم الراحة أخضر، والإحصائيات فوق */
 [data-theme="anime"] .cell.rest i, [data-theme="anime"] .lg-rest::before { background: rgba(111, 227, 165, .6); }
@@ -1298,11 +1262,6 @@ dialog.lv-dlg::backdrop { background: rgba(1, 4, 11, .88); }
 @media (max-width: 600px) {
   .grp-hint { white-space: normal; }
 }
-
-/* البطل على الشاشات العريضة: الاسم والحالة وصورة الشخصية بنفس عرض البطاقات، والخلفية تبقى بعرض الشاشة */
-.hero-anime .hero-body { width: 100%; max-width: 1480px; margin-inline: auto; }
-.hero-anime .avatar { right: max(-10px, calc((100% - 1480px) / 2 - 10px)); }
-[dir="ltr"] .hero-anime .avatar { right: auto; left: max(-10px, calc((100% - 1480px) / 2 - 10px)); }
 
 /* النوافذ: .panel تعطي position: relative، فنرجّع التثبيت عشان ما تمشي مع السكرول */
 dialog.panel:modal { position: fixed; }
@@ -1340,9 +1299,9 @@ dialog.panel:modal { position: fixed; }
   .tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 58px; padding: 7px 4px 6px; font-size: 12px; line-height: 1.2; border-bottom: none; border-top: 2px solid transparent; }
   .tab svg { display: block; width: 22px; height: 22px; stroke-width: 1.6; }
   .tab[aria-current="page"] { border-bottom-color: transparent; }
-  [data-theme="anime"] .tabs { background: rgba(3, 7, 18, .98); border-top: 1px solid rgba(127, 232, 255, .3); box-shadow: 0 -10px 28px -14px rgba(127, 232, 255, .55); }
-  [data-theme="anime"] .tab[aria-current="page"] { color: var(--acc); border-top-color: var(--acc); text-shadow: 0 0 12px rgba(127, 232, 255, .7); }
-  [data-theme="anime"] .tab[aria-current="page"] svg { filter: drop-shadow(0 0 5px rgba(127, 232, 255, .8)); }
+  [data-theme="anime"] .tabs { background: rgba(3, 7, 18, .98); border-top: 1px solid rgb(var(--acc-rgb) / .3); box-shadow: 0 -10px 28px -14px rgb(var(--acc-rgb) / .55); }
+  [data-theme="anime"] .tab[aria-current="page"] { color: var(--acc); border-top-color: var(--acc); text-shadow: 0 0 12px rgb(var(--acc-rgb) / .7); }
+  [data-theme="anime"] .tab[aria-current="page"] svg { filter: drop-shadow(0 0 5px rgb(var(--acc-rgb) / .8)); }
   [data-theme="ink"] .tabs { background: var(--bg); border-top: 1px solid var(--line); }
   [data-theme="ink"] .tab[aria-current="page"] { color: var(--acc); text-decoration: none; }
   html:not(.need-auth) body { padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
@@ -1375,25 +1334,10 @@ dialog.panel:modal { position: fixed; }
   .title-chip .crown { width: 13px; height: 13px; }
   .xp-meta { font-size: 12px; }
   .subtitle { padding: 6px 16px 10px; font-size: 14px; }
-
-  /* الأنمي: نافذة [الحالة] سطرين: السلسلة، ثم القدرات الخمس جنب بعض */
-  [data-theme="anime"] .hero-anime { min-height: 0; }
-  .hero-anime .lvl-block { gap: 9px; }
   .rank-trial { gap: 6px 14px; padding: 7px 10px; }
   .rt-rows { gap: 6px 14px; }
   .rt-row { gap: 3px; }
-  .status-win { gap: 9px; padding: 10px 14px 12px; }
-  .status-win .win-tab { display: none; }
-  .st-streak { gap: 10px; padding-bottom: 9px; }
-  .st-streak .flame { width: 24px; height: 24px; }
-  .st-streak .streak-num { font-size: 38px; }
   .st-side { flex: 1 1 auto; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2px 12px; }
-  .st-abil { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
-  .st-abil .ab:last-child:nth-child(odd) { grid-column: auto; }
-  .ab-top { flex-direction: column; align-items: center; gap: 0; }
-  .ab-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
-  .ab-val { font-size: 16px; line-height: 1.3; }
-  .ab-bar { height: 3px; margin-top: 3px; }
 
   /* حبر الليل: المستوى فوق، وتحته القمر الصغير جنب السلسلة */
   .hero-ink { padding: 12px 16px 0; }
@@ -1461,7 +1405,7 @@ dialog.panel:modal { position: fixed; }
 .task-li.dragging { z-index: 3; background: var(--soft); outline: 1px solid var(--acc); box-shadow: 0 10px 26px -10px rgba(0, 0, 0, .8); cursor: grabbing; }
 .task-li.swiping { transition: none; }
 .task-li.sw-done { background: rgba(111, 227, 165, .16); }
-.task-li.sw-edit { background: rgba(196, 168, 255, .16); }
+.task-li.sw-edit { background: rgb(var(--acc2-rgb) / .16); }
 [data-theme="ink"] .task-li.sw-edit { background: rgba(240, 163, 94, .14); }
 
 @media (max-width: 600px) {
@@ -1471,4 +1415,98 @@ dialog.panel:modal { position: fixed; }
   /* الإضافة: الخانة، «تفاصيل» (أيقونة)، «أضف» */
   .quick .quick-more { order: 2; flex: none; width: 44px; padding: 0; justify-content: center; }
   .quick .quick-more span { display: none; }
+}
+
+
+/* =====================================================================
+   20. سماء اليوم (الواجهة الأولى): بطاقات هادية، ذهبي على كحلي، وخريطة النجوم
+   ===================================================================== */
+[data-theme="anime"] body { background-image: none; }
+[data-theme="anime"] .panel { background: var(--card); border: 1px solid var(--rule); border-radius: 20px; box-shadow: none; }
+[data-theme="anime"] .panel::before, [data-theme="anime"] .panel::after { display: none; }
+[data-theme="anime"] .topbar { max-width: 1480px; margin: 0 auto; background: none; border-bottom: 1px solid var(--rule); }
+[data-theme="anime"] .brand { color: var(--bright); text-shadow: none; }
+[data-theme="anime"] .icon-btn { border-color: var(--rule); border-radius: 50%; color: var(--muted2); box-shadow: none; }
+[data-theme="anime"] .main-btn { background: var(--acc); color: #070B1A; border-color: var(--acc); border-radius: 14px; box-shadow: none; }
+[data-theme="anime"] .main-btn:hover { background: #FFDF94; box-shadow: none; }
+[data-theme="anime"] .ghost-btn { border-color: var(--rule); border-radius: 14px; }
+[data-theme="anime"] :is(input[type="text"], input[type="time"], input[type="date"], input[type="number"], input[type="email"], input[type="password"], select, textarea) { border-radius: 12px; }
+
+/* --- الرأس: بطاقة المستوى وجنبها الخريطة --- */
+.hero-sky { max-width: 1480px; margin: 0 auto; }
+.hero-sky .hero-body { display: grid; grid-template-columns: minmax(280px, 340px) minmax(0, 1fr); align-items: stretch; gap: 24px; padding: 24px 24px 4px; }
+.hero-sky .lvl-block { margin: 0; max-width: none; flex: none; gap: 14px; }
+.hero-sky .lvl-num { font-size: 104px; line-height: .9; color: var(--acc); text-shadow: none; }
+.hero-sky .hname { font-size: 28px; }
+.hero-sky .rank-chip { border-radius: 999px; border-color: var(--rule); color: var(--text); background: #141B36; }
+.hero-sky .title-chip { border-radius: 999px; border-color: transparent; background: var(--acc); color: #070B1A; box-shadow: none; }
+.hero-sky .title-chip .crown { color: #070B1A; }
+.hero-sky .rank-trial { border: none; border-top: 1px solid var(--rule); background: none; padding: 12px 0 0; }
+.hero-sky .rt-title { color: var(--muted); letter-spacing: 0; font-weight: 500; }
+.hero-sky .subtitle { padding: 12px 24px 4px; color: var(--muted2); text-shadow: none; font-size: 15px; }
+.sky-id { display: flex; flex-direction: column; justify-content: space-between; gap: 16px; }
+.xp-arc { width: 100%; height: auto; display: block; }
+.xp-arc .track { stroke: var(--rule); stroke-width: 2; }
+.xp-arc .fill { stroke: var(--acc); stroke-width: 3; }
+.xp-arc .dot { fill: #FFFFFF; stroke: none; }
+.xp-arc .base { stroke: var(--rule); stroke-width: 1; }
+.sky-streak { display: flex; align-items: center; gap: 14px; padding-top: 14px; border-top: 1px solid var(--rule); }
+.sky-streak .streak-num { font-size: 52px; line-height: 1; color: var(--bright); text-shadow: none; }
+.sky-streak .streak-lbl { color: var(--muted2); }
+[data-theme="anime"] .grace i { border-radius: 50%; transform: none; border-color: var(--acc); }
+[data-theme="anime"] .grace i.left { background: var(--acc); }
+
+/* --- الخريطة --- */
+.sky-chart { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.sky-chart .panel-head { justify-content: space-between; align-items: baseline; margin-bottom: 0; }
+.sky-chart h2 { font-size: 30px; font-weight: 600; }
+.sky-svg { width: 100%; height: auto; display: block; overflow: visible; }
+.sky-svg text { fill: var(--muted); stroke: none; font-family: var(--body); }
+.sky-band { stroke: #161D38; stroke-width: 1; }
+.sky-hour { stroke: #161D38; stroke-width: 1; stroke-dasharray: 2 6; }
+.sky-svg .sky-val { fill: var(--text); }
+.sky-route { stroke: #5A6690; stroke-width: 1; stroke-dasharray: 3 7; }
+.sky-line { stroke: var(--acc); stroke-width: 1.5; }
+.sky-now line { stroke: var(--text); stroke-width: 1; }
+.sky-svg .sky-now text { fill: var(--text); }
+.sky-star { cursor: pointer; outline: none; }
+.sky-star .hit { fill: transparent; stroke: none; }
+.sky-star .core { fill: var(--card); stroke: var(--text); stroke-width: 1.6; transition: stroke .15s ease, stroke-width .15s ease; }
+.sky-star.done .core { fill: var(--acc); stroke: none; }
+.sky-star .halo { fill: none; stroke: var(--acc); stroke-width: 1; stroke-dasharray: 2 5; }
+.sky-svg .sky-star .name { fill: var(--text); }
+.sky-svg .sky-star.done .name { fill: var(--muted); }
+.sky-svg .sky-star.mit .name { fill: #FFFFFF; font-weight: 600; }
+.sky-star.late:not(.done) .core { stroke: var(--ember); }
+.sky-star:hover .core, .sky-star:focus-visible .core { stroke: var(--acc); stroke-width: 2.6; }
+.sky-star.done:hover .core, .sky-star.done:focus-visible .core { stroke: #FFFFFF; stroke-width: 1.4; }
+.sky-star:focus-visible .hit { stroke: var(--acc); stroke-width: 1.5; stroke-dasharray: 3 4; }
+.sky-star.fresh .core { transform-box: fill-box; transform-origin: center; animation: starOn .55s cubic-bezier(.2, 1.4, .4, 1) both; }
+@keyframes starOn { from { transform: scale(.1) rotate(-60deg); opacity: 0; } to { transform: scale(1) rotate(0); opacity: 1; } }
+
+[data-theme="anime"] .task .ctr { display: none; }
+
+@media (max-width: 900px) {
+  .hero-sky .hero-body { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 600px) {
+  /* الجوال: بطاقة المستوى مضغوطة، ثم المهام، ثم الخريطة */
+  #hero.hero-sky, .hero-sky .hero-body { display: contents; }
+  .sky-id, .sky-chart { margin-inline: 16px; }
+  .sky-id { order: 0; margin-top: 14px; padding: 14px 16px; gap: 10px; }
+  .hero-sky .subtitle { order: 0; padding: 0 16px; }
+  .sky-chart { order: 2; padding: 14px 12px 10px; }
+  #statCards { order: 3; } #focusPanel { order: 4; } #heatPanel { order: 5; } #achMini { order: 6; }
+  .hero-sky .lvl-block { display: grid; grid-template-columns: minmax(0, 1fr) 104px; align-items: end; gap: 8px 12px; }
+  .hero-sky .lvl-num { font-size: 68px; }
+  .hero-sky .hname { font-size: 22px; }
+  .hero-sky .xp-meta, .hero-sky .rank-trial, .hero-sky .rank-max { grid-column: 1 / -1; }
+  .hero-sky .rank-trial { padding-top: 8px; }
+  .sky-streak { padding-top: 10px; gap: 10px; }
+  .sky-streak .streak-num { font-size: 34px; }
+  .sky-chart h2 { font-size: 22px; }
+  .sky-hint { font-size: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sky-star.fresh .core { animation: none; }
 }

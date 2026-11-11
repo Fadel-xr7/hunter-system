@@ -25,7 +25,7 @@ function startClock() {
     if (view === 'today') updateSubtitle();
     const n = new Date();
     if (checkDay()) return;
-    if (n.getMinutes() !== lastMinute) { lastMinute = n.getMinutes(); if (view === 'today' && look().liveNowLine) renderTasks(); }
+    if (n.getMinutes() !== lastMinute) { lastMinute = n.getMinutes(); if (view === 'today') { if (look().liveNowLine) renderTasks(); look().minuteTick(); } }
   }, 1000);
 }
 

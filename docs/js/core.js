@@ -156,9 +156,9 @@ function freshState() {
     plans: {},          // 'YYYY-MM-DD' -> ids المهام اليومية لذاك اليوم (تنحفظ أول ما يخلص اليوم)
     focus: { minutes: 0, sessions: 0 },
     achievements: [
-      { id: 'a30', name: L('المستيقظ', 'The Awakened'), days: 30 },
-      { id: 'a60', name: L('قائد الظلال', 'Shadow Commander'), days: 60 },
-      { id: 'a90', name: L('العاهل', 'The Monarch'), days: 90 }
+      { id: 'a30', name: L('المثابر', 'The Steadfast'), days: 30 },
+      { id: 'a60', name: L('طويل النفَس', 'The Enduring'), days: 60 },
+      { id: 'a90', name: L('اللي ما ينكسر', 'The Unbroken'), days: 90 }
     ],
     unlocked: [],
     title: '',                  // id الإنجاز اللي صار لقبك
