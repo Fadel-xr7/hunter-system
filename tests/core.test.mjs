@@ -477,3 +477,19 @@ test('«يوم 31» في شهر ما فيه 31: أقرب شهر فيه هذا ا
   assert.equal(c.call('parseQuick', 'تسليم يوم 5').date, '2026-11-05');
   assert.equal(c.call('parseQuick', 'تسليم يوم 4').date, '2026-12-04');
 });
+
+test('الترتيب اليدوي: state.order ينظف، وbyOrder يحط المرتّب أول والباقي بالوقت', () => {
+  const c = loadCore();
+  c.setState({ order: ['fixed:b', 'gate:x', 'fixed:b', 5, 'bad', 'fixed:', 'gate:' + 'z'.repeat(100)] });
+  assert.deepEqual(c.state().order, ['fixed:b', 'gate:x', 'gate:' + 'z'.repeat(55)]);
+  c.setState({});
+  assert.deepEqual(c.state().order, [], 'بدون ترتيب محفوظ = فاضي');
+
+  const list = [
+    { kind: 'fixed', id: 'a', time: '08:00' }, { kind: 'fixed', id: 'b', time: '20:00' },
+    { kind: 'gate', id: 'x', time: '12:00' }, { kind: 'fixed', id: 'c', time: '06:00' }
+  ];
+  const sorted = (order) => { c.setState({ order }); return c.run(`JSON.stringify(${JSON.stringify(list)}.sort(byOrder).map((t) => t.id))`); };
+  assert.equal(sorted([]), '["c","a","x","b"]', 'بدون ترتيب يدوي: بالوقت');
+  assert.equal(sorted(['fixed:b', 'gate:x']), '["b","x","c","a"]', 'المرتّب أول بترتيبه، والباقي بعده بالوقت');
+});

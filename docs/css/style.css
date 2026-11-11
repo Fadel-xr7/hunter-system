@@ -1442,3 +1442,33 @@ dialog.panel:modal { position: fixed; }
   .quick-help[aria-expanded="true"]::before { opacity: 1; background: var(--soft); }
   [dir="ltr"] .quick-help { left: auto; right: 0; }
 }
+
+/* =====================================================================
+   19. تعديل المهمة من سطرها، زر «تفاصيل»، والسحب (ترتيب وسحبة)
+   ===================================================================== */
+.more-btn { flex: none; width: 36px; height: 44px; display: grid; place-items: center; padding: 0; background: none; border: none; color: var(--muted); opacity: .7; transition: opacity .2s ease, color .2s ease; }
+.more-btn svg { width: 20px; height: 20px; fill: currentColor; stroke: none; }
+.more-btn:hover, .more-btn:focus-visible { opacity: 1; color: var(--acc); }
+.quick-more { display: inline-flex; align-items: center; gap: 8px; }
+.quick-more svg { width: 18px; height: 18px; flex: none; }
+.danger-btn { margin-inline-start: auto; color: #FFB4B4; }
+.danger-btn:hover { color: #FFD0D0; border-color: #FF8A8A; }
+[data-theme="ink"] .danger-btn { color: #E8A0A0; }
+.mini.move { min-width: 36px; padding: 4px 8px; font-size: 11px; }
+.order-reset { display: block; margin: 8px 0 0; }
+
+.task-li { position: relative; touch-action: pan-y; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.task-li.dragging { z-index: 3; background: var(--soft); outline: 1px solid var(--acc); box-shadow: 0 10px 26px -10px rgba(0, 0, 0, .8); cursor: grabbing; }
+.task-li.swiping { transition: none; }
+.task-li.sw-done { background: rgba(111, 227, 165, .16); }
+.task-li.sw-edit { background: rgba(196, 168, 255, .16); }
+[data-theme="ink"] .task-li.sw-edit { background: rgba(240, 163, 94, .14); }
+
+@media (max-width: 600px) {
+  /* سطر المهمة: النجمة، المهمة، زر التعديل بنفس السطر */
+  .task-li > .task { flex: 1 1 0; width: auto; }
+  .more-btn { width: 32px; }
+  /* الإضافة: الخانة، «تفاصيل» (أيقونة)، «أضف» */
+  .quick .quick-more { order: 2; flex: none; width: 44px; padding: 0; justify-content: center; }
+  .quick .quick-more span { display: none; }
+}

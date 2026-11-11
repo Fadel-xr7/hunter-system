@@ -39,10 +39,10 @@ export const TODAY = '2026-10-28';
  * سياق متصفح جاهز: كل الطلبات الخارجية ممنوعة، وvendor/supabase.js يتبدّل بالوهمي.
  * seed: بيانات تنكتب في localStorage مرة وحدة (قبل أول تحميل)، فالتبويب الثاني يشوف نفس البيانات.
  */
-export async function newContext(browser, { lang = 'ar', theme = 'anime', seed = {}, viewport = { width: 1280, height: 900 }, reducedMotion = 'reduce', realLib = false } = {}) {
+export async function newContext(browser, { lang = 'ar', theme = 'anime', seed = {}, viewport = { width: 1280, height: 900 }, reducedMotion = 'reduce', realLib = false, hasTouch = false } = {}) {
   const context = await browser.newContext({
     viewport, locale: lang === 'ar' ? 'ar-SA' : 'en-US', timezoneId: 'Asia/Riyadh',
-    serviceWorkers: 'block', reducedMotion, acceptDownloads: true
+    serviceWorkers: 'block', reducedMotion, acceptDownloads: true, hasTouch
   });
   const fake = await readFile(FAKE_SB, 'utf8');
   await context.route('**/*', (route) => {

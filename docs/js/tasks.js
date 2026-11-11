@@ -72,6 +72,7 @@ function removeTask(kind, id) {
   }
   if (state.timer.link === kind + ':' + id) state.timer.link = '';
   if (state.mit.key === kind + ':' + id) state.mit = { date: '', key: '' };
+  state.order = state.order.filter((k) => k !== kind + ':' + id);
   syncMit();
   return true;
 }
@@ -100,16 +101,41 @@ function undoAdd(kind, id) {
 }
 
 // أزرار تعديل/حذف جنب المهمة (تطلع في وضع «تعديل المهام»)
-function rowTools(kind, id, title) {
+function rowTools(kind, id, title, movable) {
   return el('span', { class: 'row-tools' },
+    movable ? el('button', { class: 'mini move', onclick: () => moveTask(kind + ':' + id, -1), 'aria-label': L('ارفع ', 'Move up ') + title, text: '▲' }) : null,
+    movable ? el('button', { class: 'mini move', onclick: () => moveTask(kind + ':' + id, 1), 'aria-label': L('نزّل ', 'Move down ') + title, text: '▼' }) : null,
     el('button', { class: 'mini', onclick: () => openEdit(kind, id), 'aria-label': L('تعديل ', 'Edit ') + title, text: L('تعديل', 'Edit') }),
     el('button', { class: 'mini danger', onclick: () => deleteTask(kind, id), 'aria-label': L('حذف ', 'Delete ') + title, text: L('حذف', 'Delete') }));
 }
 
-function openEdit(kind, id) {
+/* ============ الترتيب اليدوي ============ */
+// يحفظ ترتيب القائمة الظاهرة، ويخلي ترتيب المهام اللي مو ظاهرة اليوم بعدها
+function saveOrderFromList() {
+  const keys = [...$('taskList').querySelectorAll('.task-li[data-key]')].map((li) => li.dataset.key);
+  state.order = keys.concat(state.order.filter((k) => !keys.includes(k))).slice(0, 400);
+  commit();
+}
+const rowSiblings = (li) => [...li.parentNode.children].filter((x) => x.classList.contains('task-li'));
+// زر ▲ / ▼ في وضع التعديل (بديل السحب بالكيبورد)
+function moveTask(key, dir) {
+  const li = [...$('taskList').querySelectorAll('.task-li[data-key]')].find((x) => x.dataset.key === key);
+  if (!li) return;
+  const sib = rowSiblings(li);
+  const other = sib[sib.indexOf(li) + dir];
+  if (!other) return;
+  if (dir < 0) other.before(li); else other.after(li);
+  saveOrderFromList();
+}
+
+// isNew: المهمة توها انضافت من زر «تفاصيل»، فالإلغاء يشيلها
+function openEdit(kind, id, isNew) {
   const q = kind === 'fixed' ? state.fixed.find((x) => x.id === id) : state.gates.find((x) => x.id === id);
   if (!q) return;
-  $('editTitle').textContent = kind === 'fixed' ? L('تعديل المهمة اليومية', 'Edit daily quest') : L('تعديل البوابة', 'Edit gate');
+  $('editTitle').textContent = isNew
+    ? (kind === 'fixed' ? L('مهمة يومية جديدة', 'New daily quest') : L('بوابة جديدة', 'New gate'))
+    : (kind === 'fixed' ? L('تعديل المهمة اليومية', 'Edit daily quest') : L('تعديل البوابة', 'Edit gate'));
+  $('eDelete').hidden = Boolean(isNew);
   $('eTitle').value = q.title;
   $('eTime').value = q.time;
   $('eStat').value = q.stat;
@@ -126,9 +152,10 @@ function openEdit(kind, id) {
   $('eSubsBox').hidden = kind !== 'gate';
   const dlg = $('editDialog');
   dlg.onclose = () => {
-    if (dlg.returnValue !== 'save') return;
+    if (dlg.returnValue === 'delete') { deleteTask(kind, id); return; }
     const title = $('eTitle').value.trim().slice(0, 120);
-    if (!title || !isTime($('eTime').value)) return;
+    const ok = dlg.returnValue === 'save' && title && isTime($('eTime').value);
+    if (!ok) { if (isNew && removeTask(kind, id)) commit(); return; }
     snapshotPlans(); // نثبّت الأيام اللي خلصت قبل ما تتغيّر أيام المهمة
     q.title = title; q.time = $('eTime').value; q.stat = $('eStat').value;
     if (kind === 'fixed') {
@@ -146,6 +173,7 @@ function openEdit(kind, id) {
         return o ? o : { id: uid('s'), title, done: false };
       }));
     }
+    if (isNew) { toast(kind === 'fixed' ? L('أضيفت مهمة يومية', 'Daily quest added') : L('فُتحت بوابة جديدة', 'A new gate opened'), q.title, '', undoAdd(kind, id)); sound('done'); }
     commit();
   };
   dlg.returnValue = '';
@@ -198,13 +226,15 @@ function taskRow(t) {
     'aria-label': isMit ? L('إلغاء «' + t.title + '» كمهمة اليوم الأهم', 'Remove "' + t.title + '" as today\'s top quest') : L('اجعل «' + t.title + '» مهمة اليوم الأهم (+' + MIT_XP + ' XP)', 'Make "' + t.title + '" today\'s top quest (+' + MIT_XP + ' XP)'),
     title: isMit ? L('مهمة اليوم الأهم', "Today's top quest") : L('اجعلها مهمة اليوم الأهم', "Make it today's top quest"), onclick: () => setMit(key)
   }, starIcon());
-  const li = el('li', { class: 'task-li' + (isMit ? ' is-mit' : '') }, star, btn);
+  const more = editing ? null : el('button', { class: 'more-btn', 'aria-label': L('تعديل ', 'Edit ') + t.title, title: L('تعديل', 'Edit'), onclick: () => openEdit(t.kind, t.id) },
+    sv('svg', { viewBox: '0 0 24 24', 'aria-hidden': 'true' }, sv('circle', { cx: 5, cy: 12, r: 1.4 }), sv('circle', { cx: 12, cy: 12, r: 1.4 }), sv('circle', { cx: 19, cy: 12, r: 1.4 })));
+  const li = el('li', { class: 'task-li' + (isMit ? ' is-mit' : ''), 'data-key': key }, star, btn, more);
   if (t.kind === 'gate' && t.ref.subs && t.ref.subs.length) { li.classList.add('has-subs'); li.append(subsBlock(t.ref)); }
   if (justToggled === key && t.done) {
     li.classList.add('swept');
     li.append(el('span', { class: 'xpf', 'aria-hidden': 'true', dir: 'ltr', text: '+' + (t.xp + (isMit ? MIT_XP : 0)) }));
   }
-  if (editing) li.append(rowTools(t.kind, t.id, t.title));
+  if (editing) li.append(rowTools(t.kind, t.id, t.title, true));
   return li;
 }
 
@@ -227,6 +257,9 @@ function renderTasks() {
     list.append(el('p', { class: 'empty', text: L('ما عندك مهام اليوم. اكتب أول مهمة فوق، وأضف «يومي» لو تبيها تتكرر.', 'No quests today. Type your first one above, and add "daily" if it repeats.') }));
   } else {
     look().taskList(list, fixed, gates, all);
+    if (editing && all.some((x) => state.order.includes(taskKey(x)))) {
+      list.append(el('button', { class: 'link-btn order-reset', id: 'orderReset', onclick: () => { state.order = []; commit(); }, text: L('رجّع الترتيب حسب الوقت', 'Back to time order') }));
+    }
   }
 
   // البوابات القادمة (الأيام الجاية)
@@ -309,15 +342,16 @@ function readQuick() {
   return parseQuick($('quickInput').value, { daily });
 }
 
-function addParsed(p) {
+// silent: بدون إشعار (زر «تفاصيل» يفتح النافذة ويشعر بعد الحفظ). ترجع id المهمة
+function addParsed(p, silent) {
   snapshotPlans(); // مهمة يومية جديدة ما تنضاف لأمس
   const id = uid(p.kind === 'fixed' ? 'f_' : 'g_');
   if (p.kind === 'fixed') state.fixed.push({ id, title: p.title, stat: p.stat, xp: DAILY_XP, time: p.time, days: [] });
   else state.gates.push({ id, title: p.title, date: p.date, rank: p.rank, xp: p.xp, time: p.time, stat: p.stat, done: false, subs: [] });
   if (p.kind === 'fixed') syncDay(todayIso());
-  toast(p.kind === 'fixed' ? L('أضيفت مهمة يومية', 'Daily quest added') : L('فُتحت بوابة جديدة', 'A new gate opened'), p.title, '', undoAdd(p.kind, id));
-  sound('done');
+  if (!silent) { toast(p.kind === 'fixed' ? L('أضيفت مهمة يومية', 'Daily quest added') : L('فُتحت بوابة جديدة', 'A new gate opened'), p.title, '', undoAdd(p.kind, id)); sound('done'); }
   commit();
+  return id;
 }
 
 // معاينة الإضافة: شرائح تبيّن وش فهم النظام وأنت تكتب
@@ -364,6 +398,17 @@ function bindQuick() {
   const preview = () => { const p = readQuick(); if (p) quickChips(p); else $('quickHint').textContent = HINT; $('quickHint').classList.toggle('chips', Boolean(p)); };
   $('quickInput').addEventListener('input', preview);
   document.querySelectorAll('input[name="repeat"]').forEach((r) => r.addEventListener('change', preview));
+  // «تفاصيل»: يضيف اللي كتبته (أو مهمة فاضية) ويفتح نافذتها على طول: الاسم والوقت والقدرة والأيام أو التاريخ والرتبة
+  $('quickMore').addEventListener('click', () => {
+    const daily = document.querySelector('input[name="repeat"]:checked').value === 'daily';
+    const typed = readQuick();
+    const p = typed || parseQuick(L('مهمة جديدة', 'New quest'), { daily });
+    const id = addParsed(p, true);
+    $('quickInput').value = '';
+    preview();
+    openEdit(p.kind, id, true);
+    if (!typed) $('eTitle').value = '';
+  });
   // الجوال: الشرح مطوي تحت زر «؟» (المعاينة وأنت تكتب تطلع دايماً)
   $('quickHelp').addEventListener('click', () => {
     const open = $('quickHint').classList.toggle('open');
@@ -374,6 +419,82 @@ function bindQuick() {
 function bindTaskTools() {
   $('editBtn').addEventListener('click', () => { editing = !editing; renderTasks(); });
   $('restBtn').addEventListener('click', toggleRest);
+  bindTaskGestures();
+}
+
+/* ============ السحب على المهمة ============
+   فوق/تحت: يرتّب (باللمس: ضغطة مطوّلة ثم اسحب. بالماوس: اسحب على طول).
+   يمين/يسار (باللمس بس): يمين ينجز المهمة أو يتراجع، ويسار يفتح التعديل. */
+function bindTaskGestures() {
+  const list = $('taskList');
+  const SLOP = 8, SWIPE = 72, HOLD = 280;
+  let g = null;       // الحركة الجارية
+  let block = false;  // الضغطة اللي تجي بعد السحب ما تنحسب إنجاز
+  const mid = (n) => { const r = n.getBoundingClientRect(); return r.top + r.height / 2; };
+  const clear = () => {
+    if (!g) return;
+    clearTimeout(g.timer);
+    g.li.classList.remove('dragging', 'swiping', 'sw-done', 'sw-edit');
+    g.li.style.transform = '';
+    g = null;
+  };
+  const startDrag = () => { g.mode = 'drag'; g.li.classList.add('dragging'); if (navigator.vibrate) navigator.vibrate(12); };
+
+  list.addEventListener('pointerdown', (e) => {
+    const li = e.target.closest('.task-li[data-key]');
+    if (!li || !e.isPrimary || e.button > 0 || e.target.closest('.row-tools, .subs, .mit-btn, .more-btn')) return;
+    clear();
+    g = { li, id: e.pointerId, x: e.clientX, y: e.clientY, touch: e.pointerType !== 'mouse', mode: '', moved: false, dx: 0, timer: 0 };
+    if (g.touch) g.timer = setTimeout(() => { if (g && !g.mode) startDrag(); }, HOLD);
+  });
+
+  addEventListener('pointermove', (e) => {
+    if (!g || e.pointerId !== g.id) return;
+    const dx = e.clientX - g.x, dy = e.clientY - g.y;
+    if (!g.mode) {
+      if (Math.abs(dx) < SLOP && Math.abs(dy) < SLOP) return;
+      if (g.touch) {
+        // قبل ما تخلص الضغطة المطوّلة: حركة بالعرض = سحبة، وحركة بالطول = سكرول عادي
+        if (Math.abs(dx) > Math.abs(dy)) { clearTimeout(g.timer); g.mode = 'swipe'; g.li.classList.add('swiping'); } else { clear(); return; }
+      } else if (Math.abs(dy) >= Math.abs(dx)) startDrag(); else { clear(); return; }
+    }
+    if (g.mode === 'swipe') {
+      g.dx = Math.max(-120, Math.min(120, dx));
+      g.li.style.transform = 'translateX(' + g.dx + 'px)';
+      g.li.classList.toggle('sw-done', g.dx >= SWIPE);
+      g.li.classList.toggle('sw-edit', g.dx <= -SWIPE);
+    } else {
+      // المهمة تتبع الإصبع: تتخطى كل سطر عدّى الإصبع نصّه
+      for (let n = 0; n < 50; n++) {
+        const sib = rowSiblings(g.li);
+        const i = sib.indexOf(g.li);
+        if (sib[i - 1] && e.clientY < mid(sib[i - 1])) sib[i - 1].before(g.li);
+        else if (sib[i + 1] && e.clientY > mid(sib[i + 1])) sib[i + 1].after(g.li);
+        else break;
+        g.moved = true;
+      }
+    }
+  });
+
+  const finish = (e) => {
+    if (!g || e.pointerId !== g.id) return;
+    const { mode, moved, dx } = g;
+    const [kind, id] = [g.li.dataset.key.slice(0, g.li.dataset.key.indexOf(':')), g.li.dataset.key.slice(g.li.dataset.key.indexOf(':') + 1)];
+    clear();
+    if (!mode) return;
+    block = true;
+    setTimeout(() => { block = false; }, 350);
+    if (e.type === 'pointercancel') { if (moved) renderTasks(); return; }
+    if (mode === 'drag' && moved) saveOrderFromList();
+    else if (mode === 'swipe' && dx >= SWIPE) toggleTask(kind, id);
+    else if (mode === 'swipe' && dx <= -SWIPE) openEdit(kind, id);
+  };
+  addEventListener('pointerup', finish);
+  addEventListener('pointercancel', finish);
+  // السحب شغال: الصفحة ما تتحرك تحته
+  list.addEventListener('touchmove', (e) => { if (g && g.mode) e.preventDefault(); }, { passive: false });
+  list.addEventListener('click', (e) => { if (block) { block = false; e.preventDefault(); e.stopPropagation(); } }, true);
+  list.addEventListener('contextmenu', (e) => { if (g && g.touch) e.preventDefault(); });
 }
 
 // بوت واحد للكل (Supabase Edge Function). اسمه في config.js، وروابطه تجي بـ #quest= أو #add=

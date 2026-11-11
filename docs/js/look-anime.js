@@ -82,7 +82,7 @@ LOOKS.anime = {
   },
   // قائمتين: «كل يوم» و«بوابات اليوم»
   taskList(list, fixed, gates) {
-    if (fixed.length) list.append(el('div', { class: 'grp-row' }, el('h3', { class: 'grp', text: L('كل يوم', 'Daily') }), el('span', { class: 'grp-hint', text: L('النجمة = الأهم اليوم (+' + MIT_XP + ' XP)', 'Star = top quest today (+' + MIT_XP + ' XP)') })), el('ul', { class: 'tasks' }, fixed.sort(byTime).map(taskRow)));
-    if (gates.length) list.append(el('h3', { class: 'grp gates', text: L('بوابات اليوم', "Today's gates") }), el('ul', { class: 'tasks' }, gates.sort(byTime).map(taskRow)));
+    if (fixed.length) list.append(el('div', { class: 'grp-row' }, el('h3', { class: 'grp', text: L('كل يوم', 'Daily') }), el('span', { class: 'grp-hint', text: L('النجمة = الأهم اليوم (+' + MIT_XP + ' XP)', 'Star = top quest today (+' + MIT_XP + ' XP)') })), el('ul', { class: 'tasks' }, fixed.sort(byOrder).map(taskRow)));
+    if (gates.length) list.append(el('h3', { class: 'grp gates', text: L('بوابات اليوم', "Today's gates") }), el('ul', { class: 'tasks' }, gates.sort(byOrder).map(taskRow)));
   }
 };

@@ -177,6 +177,7 @@
             <button type="button" class="quick-help" id="quickHelp" aria-expanded="false" aria-controls="quickHint" aria-label="شرح طريقة الكتابة" data-en-aria="How to write a quest" data-en="?">؟</button>
           </span>
           <button type="submit" class="main-btn" data-en="Add">أضف</button>
+          <button type="button" class="ghost-btn quick-more" id="quickMore" aria-haspopup="dialog" aria-label="أضف وحدد التفاصيل: الوقت والأيام والقدرة" data-en-aria="Add with details: time, days and ability" title="الوقت، الأيام، القدرة…" data-en-title="Time, days, ability…"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg><span data-en="Details">تفاصيل</span></button>
           <p class="quick-hint" id="quickHint" data-en="Write it the way you'd say it. Optional: a time (9pm, 7:30am), a day (tomorrow, day 12), &quot;daily&quot; to repeat it, a difficulty from !E (easy) to !S (hardest), and an ability like #intellect. No time: daily quests default to 9 am, one-time quests to 5 pm.">اكتبها مثل ما تتكلم. واختياري تضيف: الوقت (9 مساءً، 7 الصبح، 9:30م)، اليوم (بكرة، يوم 12)، «يومي» لو تتكرر، الصعوبة من !E (سهلة) إلى !S (أصعب شي)، والقدرة مثل #ذكاء. بدون وقت: اليومية 9 الصبح، واللي لمرة وحدة 5 مساءً.</p>
         </form>
 
@@ -337,6 +338,7 @@
     <div class="row-btns">
       <button class="main-btn" value="save" data-en="Save">حفظ</button>
       <button class="ghost-btn" value="cancel" formnovalidate data-en="Cancel">إلغاء</button>
+      <button class="ghost-btn danger-btn" id="eDelete" value="delete" formnovalidate data-en="Delete">حذف</button>
     </div>
   </form>
 </dialog>

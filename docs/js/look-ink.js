@@ -105,8 +105,9 @@ LOOKS.ink = {
     const n = new Date();
     const nowStr = pad(n.getHours()) + ':' + pad(n.getMinutes());
     const ol = el('ol', { class: 'timeline' }, el('span', { class: 'rail', 'aria-hidden': 'true' }));
-    let placed = false;
-    all.sort(byTime).forEach((task) => {
+    // سطر «الآن» يعتمد على ترتيب الوقت، فما يطلع لو رتبت المهام بيدك
+    let placed = all.some((task) => state.order.includes(taskKey(task)));
+    all.sort(byOrder).forEach((task) => {
       if (!placed && task.time > nowStr) { ol.append(nowRow(nowStr)); placed = true; }
       ol.append(taskRow(task));
     });

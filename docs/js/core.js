@@ -71,6 +71,16 @@ const WD_FROM_FRI = EN ? ['Fri', 'Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu'] : ['�
 const WEEK_ORDER = [5, 6, 0, 1, 2, 3, 4];
 const weekStart = (iso) => addDays(iso, -((dateOf(iso).getDay() + 2) % 7));
 const byTime = (a, b) => a.time.localeCompare(b.time);
+// ترتيب قائمة اليوم: اللي رتبته بالسحب أول (state.order)، والباقي بعده بالوقت. بدون ترتيب يدوي = بالوقت
+const taskKey = (t) => t.kind + ':' + t.id;
+function byOrder(a, b) {
+  const ia = state.order.indexOf(taskKey(a));
+  const ib = state.order.indexOf(taskKey(b));
+  if (ia < 0 && ib < 0) return byTime(a, b);
+  if (ia < 0) return 1;
+  if (ib < 0) return -1;
+  return ia - ib;
+}
 const MONTHS = EN ? ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] : ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
 // الرتبة ترتفع لما توصل المستوى المطلوب والسلسلة المطلوبة مع بعض
 const RANKS = [
@@ -153,6 +163,7 @@ function freshState() {
     unlocked: [],
     title: '',                  // id الإنجاز اللي صار لقبك
     mit: { date: '', key: '' }, // مهمة اليوم الأهم: 'fixed:id' أو 'gate:id'
+    order: [],                  // ترتيبك اليدوي للمهام: ['fixed:id', 'gate:id', …]. فاضي = بالوقت
     timer: { minutes: 25, phase: 0, status: 'idle', endAt: 0, remaining: 1500, link: '', auto: true },
     sound: true,
     lastBackup: 0,
@@ -213,6 +224,7 @@ function normalize(raw) {
   if (raw.mit && typeof raw.mit === 'object' && isIso(raw.mit.date) && typeof raw.mit.key === 'string' && /^(fixed|gate):/.test(raw.mit.key)) {
     s.mit = { date: raw.mit.date, key: raw.mit.key.slice(0, 60) };
   }
+  if (Array.isArray(raw.order)) s.order = [...new Set(raw.order.filter((k) => typeof k === 'string' && /^(fixed|gate):./.test(k)).map((k) => k.slice(0, 60)))].slice(0, 400);
   if (raw.timer && typeof raw.timer === 'object') {
     const t = raw.timer;
     s.timer.minutes = TIMER_OPTS.includes(Number(t.minutes)) ? Number(t.minutes) : 25;
